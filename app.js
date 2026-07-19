@@ -93,6 +93,8 @@ let page = 0;
 const perPage = 15;
 let cdPage = 0;
 const cdPerPage = 20;
+let cdSortKey = 'brand';
+let cdSortDir = 'asc';
 let rvPage = 0;
 const rvPerPage = 20;
 let rvSortKey = 'monthlyRental';
@@ -293,6 +295,8 @@ async function loadData() {
       kam: rec.bw_spoc_name || '',
       start: rec.start_date || '',
       end: rec.end_date || '',
+      startTs: startDt ? startDt.getTime() : null,
+      endTs: endDt ? endDt.getTime() : null,
       status: status,
       bucket: statusBucket(status),
       liveDate: rec.agrmnt_live_date || '',
@@ -553,7 +557,7 @@ function renderDetails() {
     const matchesStatus = !statusFilter || r.bucket === statusFilter;
     const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
     return matchesQ && matchesCity && matchesStatus && matchesCategory;
-  });
+  }).sort((a, b) => compareRows(a, b, cdSortKey, cdSortDir));
   document.getElementById('cd-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / cdPerPage) - 1);
   if (cdPage > maxPage) cdPage = maxPage;
@@ -578,6 +582,29 @@ document.getElementById('cd-status').addEventListener('change', () => { cdPage =
 document.getElementById('cd-category').addEventListener('change', () => { cdPage = 0; renderDetails(); });
 document.getElementById('cd-prev').addEventListener('click', () => { if (cdPage > 0) { cdPage--; renderDetails(); } });
 document.getElementById('cd-next').addEventListener('click', () => { cdPage++; renderDetails(); });
+
+function updateCdSortIndicators() {
+  document.querySelectorAll('#details-table th.sortable').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.key === cdSortKey) th.classList.add(cdSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+document.querySelectorAll('#details-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (cdSortKey === key) {
+      cdSortDir = cdSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      cdSortKey = key;
+      cdSortDir = th.dataset.type === 'str' ? 'asc' : 'desc';
+    }
+    updateCdSortIndicators();
+    cdPage = 0;
+    renderDetails();
+  });
+});
+updateCdSortIndicators();
 
 // --- Revenue tab (Brand, City, Category, Sub category, KAM, Agreement Type, Monthly Rental, Commission%) ---
 function setupRevenue() {
@@ -632,7 +659,7 @@ document.getElementById('rv-city').addEventListener('change', () => { rvPage = 0
 document.getElementById('rv-prev').addEventListener('click', () => { if (rvPage > 0) { rvPage--; renderRevenue(); } });
 document.getElementById('rv-next').addEventListener('click', () => { rvPage++; renderRevenue(); });
 
-// nulls always sort last, regardless of direction; numbers compare numerically, everything else as text
+// nulls always sort last, regardless of direction; numeric-looking values compare numerically, everything else as text
 function compareRows(a, b, key, dir) {
   const av = a[key], bv = b[key];
   const aEmpty = av === null || av === undefined || av === '';
@@ -640,7 +667,10 @@ function compareRows(a, b, key, dir) {
   if (aEmpty && bEmpty) return 0;
   if (aEmpty) return 1;
   if (bEmpty) return -1;
-  const cmp = (typeof av === 'number' && typeof bv === 'number') ? av - bv : String(av).localeCompare(String(bv));
+  const numPattern = /^-?[\d.]+$/;
+  const bothNumeric = (typeof av === 'number' && typeof bv === 'number') ||
+    (numPattern.test(String(av).trim()) && numPattern.test(String(bv).trim()));
+  const cmp = bothNumeric ? parseFloat(av) - parseFloat(bv) : String(av).localeCompare(String(bv));
   return dir === 'asc' ? cmp : -cmp;
 }
 
