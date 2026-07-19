@@ -67,7 +67,7 @@
   .details-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
   #details-table, #revenue-table{border-collapse:collapse;font-size:12.5px;width:100%;}
   #details-table{min-width:1150px;}
-  #revenue-table{min-width:700px;}
+  #revenue-table{min-width:1900px;}
   #details-table th, #revenue-table th{
     text-align:left;padding:10px 12px;color:#ffffff;font-weight:700;white-space:nowrap;
     border-bottom:2px solid var(--accent);position:sticky;top:0;background:var(--accent);
@@ -192,13 +192,14 @@
   <div id="tab-revenue" class="tab-panel" style="display:none;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div class="section-title" style="margin:0;">Revenue x Brand</div>
-      <div class="pager-label" id="rv-count">— brands</div>
+      <div class="pager-label" id="rv-count">— rows</div>
     </div>
-    <p class="sub" style="margin-top:0;">Revenue = sum of Monthly Rental (agreement value &divide; contract duration) across each brand's live/current contracts.</p>
+    <p class="sub" style="margin-top:0;">Monthly Rental = agreement value &divide; contract duration. CM = current month (from Forecast Dump, so far this month). LM/L2M = last month / 2 months ago (from Previous Month). Commission/Revenue = Net Sales &times; Commission% &mdash; Revenue is currently the same figure as Commission, flag if that's wrong.</p>
 
     <div class="toolbar">
-      <input id="rv-search" type="text" placeholder="Search brand">
+      <input id="rv-search" type="text" placeholder="Search brand, city or KAM">
       <select id="rv-category"><option value="">All categories</option></select>
+      <select id="rv-city"><option value="">All cities</option></select>
     </div>
 
     <div class="details-wrap">
@@ -206,11 +207,22 @@
         <thead>
           <tr>
             <th>Brand</th>
+            <th>City</th>
             <th>Category</th>
-            <th style="text-align:right;">Cities</th>
-            <th style="text-align:right;">Contracts</th>
-            <th style="text-align:right;">Live</th>
-            <th style="text-align:right;">Total Monthly Rental</th>
+            <th>Sub category</th>
+            <th>KAM</th>
+            <th>Agreement Type</th>
+            <th style="text-align:right;">Monthly Rental</th>
+            <th style="text-align:right;">Commission%</th>
+            <th style="text-align:right;">Net Sales Exp. (CM)</th>
+            <th style="text-align:right;">Net Sales (LM)</th>
+            <th style="text-align:right;">Net Sales (L2M)</th>
+            <th style="text-align:right;">Commission Exp. (CM)</th>
+            <th style="text-align:right;">Commission Earned (LM)</th>
+            <th style="text-align:right;">Commission Earned (L2M)</th>
+            <th style="text-align:right;">Revenue Exp. (CM)</th>
+            <th style="text-align:right;">Revenue Earned (LM)</th>
+            <th style="text-align:right;">Revenue Earned (L2M)</th>
           </tr>
         </thead>
         <tbody id="revenue-table-body"></tbody>
@@ -236,7 +248,7 @@
       btn.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
       document.getElementById('tab-' + btn.dataset.tab).style.display = '';
-      document.getElementById('page-wrap').classList.toggle('wide', btn.dataset.tab === 'details');
+      document.getElementById('page-wrap').classList.toggle('wide', btn.dataset.tab === 'details' || btn.dataset.tab === 'revenue');
     });
   });
 </script>

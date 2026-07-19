@@ -75,7 +75,6 @@ let WATCHLIST = [];
 let CITY_STATUS = {};
 let CATEGORY_STATUS = {};
 let ALL_CONTRACTS = [];
-let REVENUE_BY_BRAND = [];
 let TOTAL_ROWS = 0;
 let LIVE_COUNT = 0;
 let ATTENTION_COUNT = 0;
@@ -135,6 +134,52 @@ async function loadData() {
       }
     } catch (e) {
       // mapping tab is optional — Category/Sub category just stay blank if this fails
+    }
+  }
+
+  // brand|city -> { lm: netSales, l2m: netSales }, from the "Previous Month" tab
+  // (month_delta: 1 = last month (LM), 2 = 2 months ago (L2M))
+  const prevMonthMap = {};
+  if (typeof PREV_MONTH_CSV_URL === 'string' && PREV_MONTH_CSV_URL && PREV_MONTH_CSV_URL.indexOf('PASTE_YOUR') !== 0) {
+    try {
+      const resp2 = await fetch(PREV_MONTH_CSV_URL, { cache: 'no-store' });
+      if (resp2.ok) {
+        const text2 = await resp2.text();
+        toRecords(parseCSV(text2)).forEach(rec => {
+          const brand = (rec.brand || '').trim();
+          const city = (rec.city || '').trim();
+          if (!brand || !city) return;
+          const key = brand.toLowerCase() + '|' + city.toLowerCase();
+          const sales = parseFloat(rec.net_sales) || 0;
+          const delta = parseInt(rec.month_delta, 10);
+          if (!prevMonthMap[key]) prevMonthMap[key] = { lm: 0, l2m: 0 };
+          if (delta === 1) prevMonthMap[key].lm += sales;
+          else if (delta === 2) prevMonthMap[key].l2m += sales;
+        });
+      }
+    } catch (e) {
+      // optional — LM/L2M columns just stay blank if this fails
+    }
+  }
+
+  // brand|city -> net sales logged so far this month, from the "Forecast Dump" tab
+  const cmMap = {};
+  if (typeof FORECAST_CSV_URL === 'string' && FORECAST_CSV_URL && FORECAST_CSV_URL.indexOf('PASTE_YOUR') !== 0) {
+    try {
+      const resp3 = await fetch(FORECAST_CSV_URL, { cache: 'no-store' });
+      if (resp3.ok) {
+        const text3 = await resp3.text();
+        toRecords(parseCSV(text3)).forEach(rec => {
+          const brand = (rec.brand || '').trim();
+          const city = (rec.city || '').trim();
+          if (!brand || !city) return;
+          const key = brand.toLowerCase() + '|' + city.toLowerCase();
+          const sales = parseFloat(rec.net_sales) || 0;
+          cmMap[key] = (cmMap[key] || 0) + sales;
+        });
+      }
+    } catch (e) {
+      // optional — CM columns just stay blank if this fails
     }
   }
 
@@ -205,7 +250,17 @@ async function loadData() {
     const status = rec.status || 'UNKNOWN';
     const startDt = parseDate(rec.start_date);
     const endDt = parseDate(rec.end_date);
-    const mapped = brandMap[(rec.brand_name || '').trim().toLowerCase()] || {};
+    const brandKey = (rec.brand_name || '').trim().toLowerCase();
+    const cityKey = (rec.store_name || '').trim().toLowerCase();
+    const mapped = brandMap[brandKey] || {};
+    const joinKey = brandKey + '|' + cityKey;
+    const commissionPct = parseFloat(rec.margin_percnt) || 0;
+
+    const netSalesCM = cmMap[joinKey] != null ? cmMap[joinKey] : null;
+    const prevMonth = prevMonthMap[joinKey];
+    const netSalesLM = prevMonth ? prevMonth.lm : null;
+    const netSalesL2M = prevMonth ? prevMonth.l2m : null;
+
     return {
       id: rec.contract_id || '',
       brand: rec.brand_name || '',
@@ -227,32 +282,25 @@ async function loadData() {
       lockin: rec.lockin_period || '',
       notice: rec.exit_notice_period || '',
       fnf: rec.exit_settlement_period || '',
-      expiryFlag: computeExpiryFlag(status, endDt, today)
+      expiryFlag: computeExpiryFlag(status, endDt, today),
+      // Net Sales Exp. (CM) / Net Sales (LM) / Net Sales (L2M)
+      netSalesCM: netSalesCM,
+      netSalesLM: netSalesLM,
+      netSalesL2M: netSalesL2M,
+      // Commission = Net Sales x Commission%; Revenue earned = same figure (flagged assumption)
+      commissionCM: netSalesCM != null ? Math.round(netSalesCM * commissionPct / 100) : null,
+      commissionLM: netSalesLM != null ? Math.round(netSalesLM * commissionPct / 100) : null,
+      commissionL2M: netSalesL2M != null ? Math.round(netSalesL2M * commissionPct / 100) : null,
+      revenueCM: netSalesCM != null ? Math.round(netSalesCM * commissionPct / 100) : null,
+      revenueLM: netSalesLM != null ? Math.round(netSalesLM * commissionPct / 100) : null,
+      revenueL2M: netSalesL2M != null ? Math.round(netSalesL2M * commissionPct / 100) : null
     };
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
-
-  // revenue rollup per brand, for the "Revenue" tab
-  const revenueByBrand = {};
-  allContracts.forEach(c => {
-    const key = c.brand;
-    if (!revenueByBrand[key]) {
-      revenueByBrand[key] = { brand: c.brand, category: c.category || 'Uncategorized', cities: new Set(), contracts: 0, live: 0, revenue: 0 };
-    }
-    const r = revenueByBrand[key];
-    r.cities.add(c.city);
-    r.contracts++;
-    if (c.bucket === 'Live') r.live++;
-    if (c.monthlyRental) r.revenue += c.monthlyRental;
-  });
-  const revenueRows = Object.values(revenueByBrand).map(r => ({
-    brand: r.brand, category: r.category, cities: r.cities.size, contracts: r.contracts, live: r.live, revenue: r.revenue
-  })).sort((a, b) => b.revenue - a.revenue);
 
   CITY_STATUS = cityStatus;
   CATEGORY_STATUS = categoryStatus;
   WATCHLIST = watchlist;
   ALL_CONTRACTS = allContracts;
-  REVENUE_BY_BRAND = revenueRows;
   LIVE_COUNT = statusCounts['LIVE'] || 0;
   ATTENTION_COUNT = attention;
 
@@ -503,12 +551,17 @@ document.getElementById('cd-category').addEventListener('change', () => { cdPage
 document.getElementById('cd-prev').addEventListener('click', () => { if (cdPage > 0) { cdPage--; renderDetails(); } });
 document.getElementById('cd-next').addEventListener('click', () => { cdPage++; renderDetails(); });
 
-// --- Revenue tab ---
+// --- Revenue tab (Brand, City, Category, Sub category, KAM, Agreement Type, Monthly Rental, Commission%) ---
 function setupRevenue() {
-  const categorySet = [...new Set(REVENUE_BY_BRAND.map(r => r.category))].sort();
+  const categorySet = [...new Set(ALL_CONTRACTS.map(r => r.category || 'Uncategorized'))].sort();
   const categorySelect = document.getElementById('rv-category');
   categorySelect.innerHTML = '<option value="">All categories</option>';
   categorySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; categorySelect.appendChild(o); });
+
+  const citySet = [...new Set(ALL_CONTRACTS.map(r => r.city))].filter(c => !HIDDEN_CITIES.includes(c)).sort();
+  const citySelect = document.getElementById('rv-city');
+  citySelect.innerHTML = '<option value="">All cities</option>';
+  citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
 
   rvPage = 0;
   renderRevenue();
@@ -517,30 +570,36 @@ function setupRevenue() {
 function renderRevenue() {
   const q = document.getElementById('rv-search').value.toLowerCase();
   const categoryFilter = document.getElementById('rv-category').value;
-  const filtered = REVENUE_BY_BRAND.filter(r => {
-    const matchesQ = !q || r.brand.toLowerCase().includes(q);
-    const matchesCategory = !categoryFilter || r.category === categoryFilter;
-    return matchesQ && matchesCategory;
-  });
-  document.getElementById('rv-count').textContent = filtered.length + ' brand' + (filtered.length === 1 ? '' : 's');
+  const cityFilter = document.getElementById('rv-city').value;
+  const filtered = ALL_CONTRACTS.filter(r => {
+    const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.city.toLowerCase().includes(q) || r.kam.toLowerCase().includes(q);
+    const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
+    const matchesCity = !cityFilter || r.city === cityFilter;
+    return matchesQ && matchesCategory && matchesCity;
+  }).sort((a, b) => (b.monthlyRental || 0) - (a.monthlyRental || 0));
+
+  document.getElementById('rv-count').textContent = filtered.length + ' row' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / rvPerPage) - 1);
   if (rvPage > maxPage) rvPage = maxPage;
   const slice = filtered.slice(rvPage * rvPerPage, rvPage * rvPerPage + rvPerPage);
+  const rupee = v => v !== null && v !== undefined ? '₹' + v.toLocaleString('en-IN') : null;
   const tbody = document.getElementById('revenue-table-body');
   tbody.innerHTML = slice.map(r => (
     '<tr>' +
-      cell(r.brand, 'brand-cell') + cell(r.category) +
-      '<td style="text-align:right;">' + r.cities + '</td>' +
-      '<td style="text-align:right;">' + r.contracts + '</td>' +
-      '<td style="text-align:right;color:var(--success);font-weight:600;">' + r.live + '</td>' +
-      '<td style="text-align:right;" class="money">₹' + r.revenue.toLocaleString('en-IN') + '</td>' +
+      cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category) + cell(r.subCategory) + cell(r.kam) + cell(r.agreementType) +
+      cell(r.monthlyRental !== null ? '₹' + r.monthlyRental.toLocaleString('en-IN') : null, 'money') +
+      cell(r.commission ? r.commission + '%' : null, 'money') +
+      cell(rupee(r.netSalesCM)) + cell(rupee(r.netSalesLM)) + cell(rupee(r.netSalesL2M)) +
+      cell(rupee(r.commissionCM), 'money') + cell(rupee(r.commissionLM), 'money') + cell(rupee(r.commissionL2M), 'money') +
+      cell(rupee(r.revenueCM), 'money') + cell(rupee(r.revenueLM), 'money') + cell(rupee(r.revenueL2M), 'money') +
     '</tr>'
-  )).join('') || '<tr><td colspan="6" style="color:var(--text-muted);">No matches.</td></tr>';
+  )).join('') || '<tr><td colspan="17" style="color:var(--text-muted);">No matches.</td></tr>';
   document.getElementById('rv-page').textContent = 'Page ' + (rvPage + 1) + ' of ' + (maxPage + 1);
 }
 
 document.getElementById('rv-search').addEventListener('input', () => { rvPage = 0; renderRevenue(); });
 document.getElementById('rv-category').addEventListener('change', () => { rvPage = 0; renderRevenue(); });
+document.getElementById('rv-city').addEventListener('change', () => { rvPage = 0; renderRevenue(); });
 document.getElementById('rv-prev').addEventListener('click', () => { if (rvPage > 0) { rvPage--; renderRevenue(); } });
 document.getElementById('rv-next').addEventListener('click', () => { rvPage++; renderRevenue(); });
 
