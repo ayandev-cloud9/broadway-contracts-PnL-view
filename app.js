@@ -297,7 +297,7 @@ async function loadData() {
       lob: rec.vendor_model || '',
       agreementType: rec.agrmnt_model || '',
       commission: rec.margin_percnt || '',
-      actualCommission: rawCommissionPct ? Math.round(commissionPct * 10) / 10 : '',
+      actualCommission: rawCommissionPct ? Math.round(commissionPct) : '',
       commissionOn: rec.margin_calculation_on || '',
       monthlyRental: computeMonthlyRental(rec.agreement_value, startDt, endDt),
       lockin: rec.lockin_period || '',
