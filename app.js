@@ -869,16 +869,21 @@ function renderSummary() {
   if (kpiCatEl) kpiCatEl.textContent = topCategory || '—';
   if (kpiCatValEl) kpiCatValEl.textContent = topCategory ? rupee(categoryTotals[topCategory].cm) + ' this month' : '';
 
-  // chart: revenue by city (vertical bars)
+  // chart: revenue by city (horizontal bars, highest first — matches the category chart's layout)
   if (cityChartEl) {
-    const maxCity = Math.max(1, ...cities.map(c => cityTotals[c].cm));
-    cityChartEl.innerHTML = cities.map((city, i) => {
+    const sortedCities = [...cities].sort((a, b) => cityTotals[b].cm - cityTotals[a].cm);
+    const maxCity = Math.max(1, ...sortedCities.map(c => cityTotals[c].cm));
+    cityChartEl.innerHTML = sortedCities.map(city => {
+      const i = cities.indexOf(city);
       const col = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
-      const h = Math.max(4, Math.round((cityTotals[city].cm / maxCity) * 100));
-      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;">' +
-        '<div style="font-size:10.5px;color:var(--text-2);margin-bottom:4px;white-space:nowrap;">' + rupee(cityTotals[city].cm) + '</div>' +
-        '<div style="width:60%;border-radius:4px 4px 0 0;background:' + col.bg + ';height:' + h + 'px;"></div>' +
-        '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + city + '</div>' +
+      const pct = Math.max(2, Math.round((cityTotals[city].cm / maxCity) * 100));
+      return '<div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:3px;">' +
+          '<span style="font-weight:600;color:var(--text);">' + city + '</span><span>' + rupee(cityTotals[city].cm) + '</span>' +
+        '</div>' +
+        '<div style="background:var(--surface-2);border-radius:5px;height:8px;">' +
+          '<div style="background:' + col.bg + ';width:' + pct + '%;height:8px;border-radius:5px;"></div>' +
+        '</div>' +
       '</div>';
     }).join('');
   }
