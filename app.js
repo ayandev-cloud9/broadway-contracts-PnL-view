@@ -194,13 +194,18 @@ function statusBucket(status) {
   return 'Other';
 }
 
-function statusBadge(bucket) {
+// e.g. "APPROVED_BY_VENDOR" -> "Approved By Vendor"
+function formatStatus(status) {
+  return (status || 'Unknown').split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+function statusBadge(status, bucket) {
   const cls = bucket === 'Live' ? 'live'
     : bucket === 'In progress' ? 'pending'
     : bucket === 'Expired' ? 'expired'
     : bucket === 'Terminated' ? 'terminated'
     : 'other';
-  return '<span class="badge ' + cls + '">' + bucket + '</span>';
+  return '<span class="badge ' + cls + '">' + formatStatus(status) + '</span>';
 }
 
 function setupWatchlist() {
@@ -241,7 +246,7 @@ function renderWatchlist() {
         '<div class="name">' + r[0] + '</div>' +
         '<div class="meta">' + r[2] + ' &middot; ' + r[1] + '</div>' +
       '</div>' +
-      statusBadge(r[6]) +
+      statusBadge(r[3], r[6]) +
       '<div class="date">' + r[4] + '</div>' +
       '<div class="days">' + (r[5] === null ? '—' : r[5] + 'd left') + '</div>' +
     '</div>'
