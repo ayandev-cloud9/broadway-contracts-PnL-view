@@ -91,6 +91,16 @@
   button:hover{background:var(--accent);color:#ffffff;}
   .pager-label{font-size:13px;color:var(--text-2);}
   footer{margin-top:2.5rem;font-size:12px;color:var(--text-muted);}
+  #summary-table{border-collapse:collapse;font-size:12.5px;width:100%;min-width:900px;}
+  #summary-table th, #summary-table td{padding:8px 12px;text-align:right;white-space:nowrap;}
+  #summary-table thead th{color:#ffffff;font-weight:700;position:sticky;top:0;}
+  #summary-table thead tr.city-row th{font-size:13px;text-align:center;border-left:2px solid #ffffff;}
+  #summary-table thead tr.sub-row th{background:var(--accent);border-bottom:2px solid var(--accent);font-size:11.5px;}
+  #summary-table td.cat-cell, #summary-table th.cat-cell{text-align:left;font-weight:700;color:var(--text);background:var(--surface);position:sticky;left:0;}
+  #summary-table thead tr.city-row th.cat-cell{background:var(--surface);}
+  #summary-table tbody tr{border-bottom:1px dashed var(--border);}
+  #summary-table tbody tr:last-child{border-bottom:none;border-top:2px solid var(--text);font-weight:700;background:var(--surface-2);}
+  #summary-table tbody tr:hover:not(:last-child){background:#dbe8ff;}
 </style>
 </head>
 <body>
@@ -106,6 +116,7 @@
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="details">Contract details</button>
     <button class="tab-btn" data-tab="revenue">Revenue</button>
+    <button class="tab-btn" data-tab="summary">Summary</button>
   </div>
 
   <div id="tab-dashboard" class="tab-panel">
@@ -246,6 +257,12 @@
     </div>
   </div>
 
+  <div id="tab-summary" class="tab-panel" style="display:none;">
+    <div class="section-title">Revenue summary — Category x City</div>
+    <p class="sub" style="margin-top:0;">Same Revenue figures as the Revenue tab, totaled by Category and City. CM = current month, LM = last month, L2M = 2 months ago. Contracts expired more than ~2 months ago are excluded; recently expired ones show 0 for CM but keep their LM/L2M revenue.</p>
+    <div id="summary-wrap" class="details-wrap"></div>
+  </div>
+
   <footer>Source: your Google Sheet's "Contract Dump - Raw" tab, fetched live via a published CSV link. Click Reload to re-fetch.</footer>
 </div>
 
@@ -258,7 +275,7 @@
       btn.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
       document.getElementById('tab-' + btn.dataset.tab).style.display = '';
-      document.getElementById('page-wrap').classList.toggle('wide', btn.dataset.tab === 'details' || btn.dataset.tab === 'revenue');
+      document.getElementById('page-wrap').classList.toggle('wide', btn.dataset.tab === 'details' || btn.dataset.tab === 'revenue' || btn.dataset.tab === 'summary');
     });
   });
 </script>

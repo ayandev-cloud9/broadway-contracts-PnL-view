@@ -372,6 +372,7 @@ async function loadData() {
   setupWatchlist();
   setupDetails();
   setupRevenue();
+  renderSummary();
 }
 
 function renderLiveByCity() {
@@ -774,5 +775,93 @@ document.querySelectorAll('#revenue-table th.sortable').forEach(th => {
   });
 });
 updateRvSortIndicators();
+
+// --- Summary tab: Revenue totaled by Category x City x CM/LM/L2M ---
+const SUMMARY_CITY_COLORS = [
+  { bg: '#1d5fe0', color: '#ffffff' }, // blue
+  { bg: '#f5c344', color: '#111827' }, // amber
+  { bg: '#b39ddb', color: '#111827' }, // purple
+  { bg: '#93cf93', color: '#111827' }, // green
+  { bg: '#f2a0a0', color: '#111827' }, // pink
+  { bg: '#8ecae6', color: '#111827' }  // light blue
+];
+
+function renderSummary() {
+  const wrap = document.getElementById('summary-wrap');
+  if (!wrap) return;
+
+  // same contracts the Revenue tab shows: hidden cities out, long-expired contracts out
+  const source = ALL_CONTRACTS.filter(r => !HIDDEN_CITIES.includes(r.city) && (r.bucket !== 'Expired' || r.recentlyExpired));
+
+  const cities = [...new Set(source.map(r => r.city))].sort();
+  const categories = [...new Set(source.map(r => r.category || 'Uncategorized'))].sort();
+
+  if (!cities.length || !categories.length) {
+    wrap.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px;">No data to summarize yet.</p>';
+    return;
+  }
+
+  // agg[category][city] = { cm, lm, l2m }
+  const agg = {};
+  categories.forEach(cat => {
+    agg[cat] = {};
+    cities.forEach(city => { agg[cat][city] = { cm: 0, lm: 0, l2m: 0 }; });
+  });
+  source.forEach(r => {
+    const cat = r.category || 'Uncategorized';
+    const cell = agg[cat][r.city];
+    cell.cm += r.revenueCM || 0;
+    cell.lm += r.revenueLM || 0;
+    cell.l2m += r.revenueL2M || 0;
+  });
+
+  const rupee = v => '₹' + Math.round(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  const cityHeaderRow = '<tr class="city-row">' +
+    '<th class="cat-cell">Category</th>' +
+    cities.map((city, i) => {
+      const c = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
+      return '<th colspan="3" style="background:' + c.bg + ';color:' + c.color + ';">' + city + '</th>';
+    }).join('') +
+    '</tr>';
+
+  const subHeaderRow = '<tr class="sub-row">' +
+    '<th class="cat-cell"></th>' +
+    cities.map(() => '<th>CM</th><th>LM</th><th>L2M</th>').join('') +
+    '</tr>';
+
+  const bodyRows = categories.map(cat => (
+    '<tr>' +
+      '<td class="cat-cell">' + cat + '</td>' +
+      cities.map(city => {
+        const v = agg[cat][city];
+        return '<td>' + rupee(v.cm) + '</td><td>' + rupee(v.lm) + '</td><td>' + rupee(v.l2m) + '</td>';
+      }).join('') +
+    '</tr>'
+  )).join('');
+
+  const grandTotals = {};
+  cities.forEach(city => { grandTotals[city] = { cm: 0, lm: 0, l2m: 0 }; });
+  categories.forEach(cat => {
+    cities.forEach(city => {
+      grandTotals[city].cm += agg[cat][city].cm;
+      grandTotals[city].lm += agg[cat][city].lm;
+      grandTotals[city].l2m += agg[cat][city].l2m;
+    });
+  });
+  const totalRow = '<tr>' +
+    '<td class="cat-cell">Total</td>' +
+    cities.map(city => {
+      const v = grandTotals[city];
+      return '<td>' + rupee(v.cm) + '</td><td>' + rupee(v.lm) + '</td><td>' + rupee(v.l2m) + '</td>';
+    }).join('') +
+    '</tr>';
+
+  wrap.innerHTML =
+    '<table id="summary-table">' +
+      '<thead>' + cityHeaderRow + subHeaderRow + '</thead>' +
+      '<tbody>' + bodyRows + totalRow + '</tbody>' +
+    '</table>';
+}
 
 loadData();
