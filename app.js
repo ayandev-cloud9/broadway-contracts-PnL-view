@@ -234,7 +234,7 @@ function setupWatchlist() {
   const order = ['Live', 'In progress', 'Expired', 'Terminated', 'Other'];
   statusSet.sort((a, b) => order.indexOf(a) - order.indexOf(b));
   const statusSelect = document.getElementById('wl-status');
-  statusSelect.innerHTML = '<option value="">All statuses</option>';
+  statusSelect.innerHTML = '<option value="">All Status</option>';
   statusSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSelect.appendChild(o); });
 
   page = 0;
