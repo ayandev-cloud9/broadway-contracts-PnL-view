@@ -70,6 +70,17 @@ function computeMonthlyRental(agreementValue, startDt, endDt) {
   return Math.round(v / months);
 }
 
+// If the commission base excludes GST (e.g. "Customer Selling Price without GST",
+// or anything not MRP/selling-price based), knock 18% GST off the commission%
+// before using it to compute money figures.
+function effectiveCommissionPct(commissionOn, pct) {
+  const basis = (commissionOn || '').toLowerCase();
+  if (basis.indexOf('without') !== -1 || (basis.indexOf('mrp') === -1 && basis.indexOf('selling price') === -1)) {
+    return pct * (1 - 0.18);
+  }
+  return pct;
+}
+
 // --- state ---
 let WATCHLIST = [];
 let CITY_STATUS = {};
@@ -258,7 +269,8 @@ async function loadData() {
     const cityKey = (rec.store_name || '').trim().toLowerCase();
     const mapped = brandMap[brandKey] || {};
     const joinKey = brandKey + '|' + cityKey;
-    const commissionPct = parseFloat(rec.margin_percnt) || 0;
+    const rawCommissionPct = parseFloat(rec.margin_percnt) || 0;
+    const commissionPct = effectiveCommissionPct(rec.margin_calculation_on, rawCommissionPct);
 
     const cmEntry = cmMap[joinKey];
     const netSalesCM = cmEntry ? Math.round(cmEntry.netSales) : null;
