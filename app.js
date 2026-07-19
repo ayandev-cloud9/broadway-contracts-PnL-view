@@ -138,7 +138,7 @@ async function loadData() {
   ATTENTION_COUNT = attention;
 
   setStatus('Live · last loaded ' + new Date().toLocaleTimeString());
-  drawChart();
+  renderStatusTable();
   renderLiveByCity();
   setupWatchlist();
 }
@@ -158,40 +158,28 @@ function renderLiveByCity() {
   )).join('') || '<div style="padding:8px 0;color:var(--text-muted);font-size:13px;">No live brands found.</div>';
 }
 
-function drawChart() {
-  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
-  const tickColor = isDark ? '#b4b2a9' : '#5f5e5a';
+function renderStatusTable() {
   const inProgress = s => (s.PENDING || 0) + (s.APPROVED_BY_VENDOR || 0) + (s.VENDOR_REVIEW || 0) + (s.APPROVED_BY_ADMIN || 0);
-  const cities = Object.keys(CITY_STATUS);
-  const liveData = cities.map(c => CITY_STATUS[c].LIVE || 0);
-  const progData = cities.map(c => inProgress(CITY_STATUS[c]));
-  const expData = cities.map(c => CITY_STATUS[c].EXPIRED || 0);
-  const termData = cities.map(c => CITY_STATUS[c].TERMINATED || 0);
+  const rows = Object.keys(CITY_STATUS).map(city => {
+    const s = CITY_STATUS[city];
+    const live = s.LIVE || 0;
+    const prog = inProgress(s);
+    const exp = s.EXPIRED || 0;
+    const term = s.TERMINATED || 0;
+    return { city, live, prog, exp, term, total: live + prog + exp + term };
+  }).sort((a, b) => b.total - a.total);
 
-  if (window._chart) window._chart.destroy();
-  window._chart = new Chart(document.getElementById('cityChart'), {
-    type: 'bar',
-    data: {
-      labels: cities,
-      datasets: [
-        { label: 'Live', data: liveData, backgroundColor: '#0ca30c' },
-        { label: 'In progress', data: progData, backgroundColor: '#fab219' },
-        { label: 'Expired', data: expData, backgroundColor: '#d03b3b' },
-        { label: 'Terminated', data: termData, backgroundColor: '#888780' }
-      ]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor } },
-        y: { stacked: true, grid: { display: false }, ticks: { color: tickColor } }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
+  const tbody = document.getElementById('status-table-body');
+  tbody.innerHTML = rows.map(r => (
+    '<tr style="border-bottom:1px solid var(--border);">' +
+      '<td style="padding:8px 6px;font-weight:600;">' + r.city + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--success);">' + r.live + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--warning);">' + r.prog + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--danger);">' + r.exp + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--text-2);">' + r.term + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:600;">' + r.total + '</td>' +
+    '</tr>'
+  )).join('');
 }
 
 function statusBadge(s) {

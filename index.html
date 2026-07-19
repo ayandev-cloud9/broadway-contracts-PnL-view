@@ -81,15 +81,19 @@
   <div id="live-by-city" style="margin-bottom:2rem;"></div>
 
   <div class="section-title">Status by city</div>
-  <div class="chart-box">
-    <canvas id="cityChart" role="img" aria-label="Stacked bar chart of contract status by city">Cities broken down by live, in-progress, expired and terminated contract counts.</canvas>
-  </div>
-  <div class="legend">
-    <span><span class="dot" style="background:#0ca30c;"></span>Live</span>
-    <span><span class="dot" style="background:#fab219;"></span>In progress</span>
-    <span><span class="dot" style="background:#d03b3b;"></span>Expired</span>
-    <span><span class="dot" style="background:#888780;"></span>Terminated</span>
-  </div>
+  <table id="status-table" style="width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:13px;">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border);">
+        <th style="text-align:left;padding:8px 6px;color:var(--text-2);font-weight:600;">City</th>
+        <th style="text-align:right;padding:8px 6px;color:var(--success);font-weight:600;">Live</th>
+        <th style="text-align:right;padding:8px 6px;color:var(--warning);font-weight:600;">In progress</th>
+        <th style="text-align:right;padding:8px 6px;color:var(--danger);font-weight:600;">Expired</th>
+        <th style="text-align:right;padding:8px 6px;color:var(--text-2);font-weight:600;">Terminated</th>
+        <th style="text-align:right;padding:8px 6px;color:var(--text);font-weight:600;">Total</th>
+      </tr>
+    </thead>
+    <tbody id="status-table-body"></tbody>
+  </table>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <div class="section-title" style="margin:0;">Watchlist — expiring soon</div>
@@ -112,7 +116,6 @@
   <footer>Source: your Google Sheet's "Contract Dump - Raw" tab, fetched live via a published CSV link. Click Reload to re-fetch.</footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
