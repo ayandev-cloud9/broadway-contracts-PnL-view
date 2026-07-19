@@ -297,6 +297,7 @@ async function loadData() {
       lob: rec.vendor_model || '',
       agreementType: rec.agrmnt_model || '',
       commission: rec.margin_percnt || '',
+      actualCommission: rawCommissionPct ? Math.round(commissionPct * 10) / 10 : '',
       commissionOn: rec.margin_calculation_on || '',
       monthlyRental: computeMonthlyRental(rec.agreement_value, startDt, endDt),
       lockin: rec.lockin_period || '',
@@ -563,8 +564,9 @@ function renderDetails() {
       cell(r.agreementType) + cell(r.commissionOn) +
       cell(r.monthlyRental !== null ? '₹' + r.monthlyRental.toLocaleString('en-IN') : null, 'money') +
       cell(r.commission ? r.commission + '%' : null, 'money') +
+      cell(r.actualCommission !== '' ? r.actualCommission + '%' : null, 'money') +
     '</tr>'
-  )).join('') || '<tr><td colspan="12" style="color:var(--text-muted);">No matches.</td></tr>';
+  )).join('') || '<tr><td colspan="13" style="color:var(--text-muted);">No matches.</td></tr>';
   document.getElementById('cd-page').textContent = 'Page ' + (cdPage + 1) + ' of ' + (maxPage + 1);
 }
 
