@@ -73,6 +73,7 @@ function computeMonthlyRental(agreementValue, startDt, endDt) {
 // --- state ---
 let WATCHLIST = [];
 let CITY_STATUS = {};
+let CATEGORY_STATUS = {};
 let ALL_CONTRACTS = [];
 let TOTAL_ROWS = 0;
 let LIVE_COUNT = 0;
@@ -155,6 +156,7 @@ async function loadData() {
 
   const statusCounts = {};
   const cityStatus = {};
+  const categoryStatus = {};
   const watchlist = [];
   let attention = 0;
 
@@ -165,12 +167,17 @@ async function loadData() {
     cityStatus[city] = cityStatus[city] || {};
     cityStatus[city][status] = (cityStatus[city][status] || 0) + 1;
 
+    const mapped = brandMap[(rec.brand_name || '').trim().toLowerCase()] || {};
+    const category = mapped.category || 'Uncategorized';
+    categoryStatus[category] = categoryStatus[category] || {};
+    categoryStatus[category][status] = (categoryStatus[category][status] || 0) + 1;
+
     if (status === 'EXPIRED' || status === 'TERMINATED' || status === 'VENDOR_REVIEW') attention++;
 
     const endDt = parseDate(rec.end_date);
     const delta = endDt ? daysBetween(today, endDt) : null;
     // include every contract, tagged with a status bucket so the dropdown can filter by it
-    watchlist.push([rec.brand_name, city, rec.vendor_name || '', status, rec.end_date || '—', delta, statusBucket(status)]);
+    watchlist.push([rec.brand_name, city, rec.vendor_name || '', status, rec.end_date || '—', delta, statusBucket(status), category]);
   });
 
   // soonest-expiring first; entries with no end date sort last
@@ -213,6 +220,7 @@ async function loadData() {
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
 
   CITY_STATUS = cityStatus;
+  CATEGORY_STATUS = categoryStatus;
   WATCHLIST = watchlist;
   ALL_CONTRACTS = allContracts;
   LIVE_COUNT = statusCounts['LIVE'] || 0;
@@ -220,6 +228,7 @@ async function loadData() {
 
   setStatus('Live · last loaded ' + new Date().toLocaleTimeString());
   renderStatusTable();
+  renderCategoryTable();
   renderLiveByCity();
   setupWatchlist();
   setupDetails();
@@ -261,6 +270,44 @@ function renderStatusTable() {
   tbody.innerHTML = rows.map(r => (
     '<tr style="border-bottom:1px solid var(--border);">' +
       '<td style="padding:8px 6px;font-weight:600;">' + r.city + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--success);">' + r.live + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--warning);">' + r.prog + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--danger);">' + r.exp + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;color:var(--text-2);">' + r.term + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:600;">' + r.total + '</td>' +
+    '</tr>'
+  )).join('') + (
+    '<tr style="border-top:2px solid var(--border);">' +
+      '<td style="padding:8px 6px;font-weight:700;">Total</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--success);">' + grand.live + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--warning);">' + grand.prog + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--danger);">' + grand.exp + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text-2);">' + grand.term + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;">' + grand.total + '</td>' +
+    '</tr>'
+  );
+}
+
+function renderCategoryTable() {
+  const inProgress = s => (s.PENDING || 0) + (s.APPROVED_BY_VENDOR || 0) + (s.VENDOR_REVIEW || 0) + (s.APPROVED_BY_ADMIN || 0);
+  const rows = Object.keys(CATEGORY_STATUS).map(category => {
+    const s = CATEGORY_STATUS[category];
+    const live = s.LIVE || 0;
+    const prog = inProgress(s);
+    const exp = s.EXPIRED || 0;
+    const term = s.TERMINATED || 0;
+    return { category, live, prog, exp, term, total: live + prog + exp + term };
+  }).sort((a, b) => b.total - a.total);
+
+  const grand = rows.reduce((acc, r) => {
+    acc.live += r.live; acc.prog += r.prog; acc.exp += r.exp; acc.term += r.term; acc.total += r.total;
+    return acc;
+  }, { live: 0, prog: 0, exp: 0, term: 0, total: 0 });
+
+  const tbody = document.getElementById('category-table-body');
+  tbody.innerHTML = rows.map(r => (
+    '<tr style="border-bottom:1px solid var(--border);">' +
+      '<td style="padding:8px 6px;font-weight:600;">' + r.category + '</td>' +
       '<td style="padding:8px 6px;text-align:right;color:var(--success);">' + r.live + '</td>' +
       '<td style="padding:8px 6px;text-align:right;color:var(--warning);">' + r.prog + '</td>' +
       '<td style="padding:8px 6px;text-align:right;color:var(--danger);">' + r.exp + '</td>' +
@@ -339,7 +386,7 @@ function renderWatchlist() {
     '<div class="row">' +
       '<div class="left-col">' +
         '<div class="name">' + r[0] + '</div>' +
-        '<div class="meta">' + r[2] + ' &middot; ' + r[1] + '</div>' +
+        '<div class="meta">' + r[2] + ' &middot; ' + r[1] + ' &middot; ' + (r[7] || 'Uncategorized') + '</div>' +
       '</div>' +
       '<div style="width:150px;flex-shrink:0;">' + statusBadge(r[3], r[6]) + '</div>' +
       '<div class="date">' + r[4] + '</div>' +
