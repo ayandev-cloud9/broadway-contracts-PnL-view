@@ -292,6 +292,13 @@
 
     <details style="border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;">
       <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--accent);">Show full breakdown (all categories x cities)</summary>
+      <div class="toolbar" style="margin-top:12px;margin-bottom:0;">
+        <select id="summary-metric">
+          <option value="cm">Current month (CM)</option>
+          <option value="lm">Last month (LM)</option>
+          <option value="l2m">2 months ago (L2M)</option>
+        </select>
+      </div>
       <div id="summary-wrap" class="details-wrap" style="margin-top:12px;"></div>
     </details>
   </div>

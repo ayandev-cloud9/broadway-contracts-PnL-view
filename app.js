@@ -905,43 +905,39 @@ function renderSummary() {
     }).join('');
   }
 
-  // full pivot table, collapsed behind a <details> for anyone who wants row-level detail
+  // full pivot table, collapsed behind a <details> for anyone who wants row-level detail.
+  // one metric shown at a time (picked via the dropdown) so the table stays narrow — a
+  // Category x City grid instead of Category x (City x 3 columns)
+  const metricSelect = document.getElementById('summary-metric');
+  const metric = metricSelect ? metricSelect.value : 'cm';
+
   const cityHeaderRow = '<tr class="city-row">' +
     '<th class="cat-cell">Category</th>' +
     cities.map((city, i) => {
       const c = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
-      return '<th colspan="3" style="background:' + c.bg + ';color:' + c.color + ';">' + city + '</th>';
+      return '<th style="background:' + c.bg + ';color:' + c.color + ';">' + city + '</th>';
     }).join('') +
-    '</tr>';
-
-  const subHeaderRow = '<tr class="sub-row">' +
-    '<th class="cat-cell"></th>' +
-    cities.map(() => '<th>CM</th><th>LM</th><th>L2M</th>').join('') +
     '</tr>';
 
   const bodyRows = categories.map(cat => (
     '<tr>' +
       '<td class="cat-cell">' + cat + '</td>' +
-      cities.map(city => {
-        const v = agg[cat][city];
-        return '<td>' + rupee(v.cm) + '</td><td>' + rupee(v.lm) + '</td><td>' + rupee(v.l2m) + '</td>';
-      }).join('') +
+      cities.map(city => '<td>' + rupee(agg[cat][city][metric]) + '</td>').join('') +
     '</tr>'
   )).join('');
 
   const totalRow = '<tr>' +
     '<td class="cat-cell">Total</td>' +
-    cities.map(city => {
-      const v = cityTotals[city];
-      return '<td>' + rupee(v.cm) + '</td><td>' + rupee(v.lm) + '</td><td>' + rupee(v.l2m) + '</td>';
-    }).join('') +
+    cities.map(city => '<td>' + rupee(cityTotals[city][metric]) + '</td>').join('') +
     '</tr>';
 
   wrap.innerHTML =
     '<table id="summary-table">' +
-      '<thead>' + cityHeaderRow + subHeaderRow + '</thead>' +
+      '<thead>' + cityHeaderRow + '</thead>' +
       '<tbody>' + bodyRows + totalRow + '</tbody>' +
     '</table>';
 }
+
+document.getElementById('summary-metric').addEventListener('change', renderSummary);
 
 loadData();
