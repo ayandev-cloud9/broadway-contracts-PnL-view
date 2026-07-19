@@ -430,6 +430,11 @@ function setupDetails() {
   statusSelect.innerHTML = '<option value="">All Status</option>';
   statusSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSelect.appendChild(o); });
 
+  const categorySet = [...new Set(ALL_CONTRACTS.map(r => r.category || 'Uncategorized'))].sort();
+  const categorySelect = document.getElementById('cd-category');
+  categorySelect.innerHTML = '<option value="">All categories</option>';
+  categorySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; categorySelect.appendChild(o); });
+
   cdPage = 0;
   renderDetails();
 }
@@ -442,13 +447,15 @@ function renderDetails() {
   const q = document.getElementById('cd-search').value.toLowerCase();
   const cityFilter = document.getElementById('cd-city').value;
   const statusFilter = document.getElementById('cd-status').value;
+  const categoryFilter = document.getElementById('cd-category').value;
   const filtered = ALL_CONTRACTS.filter(r => {
     const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.vendor.toLowerCase().includes(q) ||
       r.city.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) ||
       r.category.toLowerCase().includes(q) || r.subCategory.toLowerCase().includes(q);
     const matchesCity = !cityFilter || r.city === cityFilter;
     const matchesStatus = !statusFilter || r.bucket === statusFilter;
-    return matchesQ && matchesCity && matchesStatus;
+    const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
+    return matchesQ && matchesCity && matchesStatus && matchesCategory;
   });
   document.getElementById('cd-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / cdPerPage) - 1);
@@ -470,6 +477,7 @@ function renderDetails() {
 document.getElementById('cd-search').addEventListener('input', () => { cdPage = 0; renderDetails(); });
 document.getElementById('cd-city').addEventListener('change', () => { cdPage = 0; renderDetails(); });
 document.getElementById('cd-status').addEventListener('change', () => { cdPage = 0; renderDetails(); });
+document.getElementById('cd-category').addEventListener('change', () => { cdPage = 0; renderDetails(); });
 document.getElementById('cd-prev').addEventListener('click', () => { if (cdPage > 0) { cdPage--; renderDetails(); } });
 document.getElementById('cd-next').addEventListener('click', () => { cdPage++; renderDetails(); });
 
