@@ -61,6 +61,20 @@
   .badge.terminated{background:var(--surface-2);color:var(--text-2);}
   .badge.other{background:var(--surface-2);color:var(--text-muted);}
   .pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;}
+  .tabs{display:flex;gap:4px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);}
+  .tab-btn{
+    background:none;border:none;border-radius:0;height:auto;padding:8px 4px;margin-right:20px;
+    font-size:14px;font-weight:600;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;
+  }
+  .tab-btn:hover{background:none;color:var(--text);}
+  .tab-btn.active{color:var(--text);border-bottom-color:var(--accent);}
+  .details-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
+  #details-table{border-collapse:collapse;font-size:12px;min-width:1500px;width:100%;}
+  #details-table th{
+    text-align:left;padding:8px 10px;color:var(--text-2);font-weight:600;white-space:nowrap;
+    border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);
+  }
+  #details-table td{padding:8px 10px;white-space:nowrap;}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);
     background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;
@@ -79,46 +93,99 @@
     <button id="reload-btn">Reload</button>
   </div>
 
-  <div class="section-title">Live brands by city</div>
-  <div id="live-by-city" style="margin-bottom:2rem;"></div>
-
-  <div class="section-title">Status by city</div>
-  <table id="status-table" style="width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:13px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-    <thead>
-      <tr style="border-bottom:1px solid var(--border);">
-        <th style="text-align:left;padding:8px 6px;color:var(--text-2);font-weight:600;">City</th>
-        <th style="text-align:right;padding:8px 6px;color:var(--success);font-weight:600;">Live</th>
-        <th style="text-align:right;padding:8px 6px;color:var(--warning);font-weight:600;">In progress</th>
-        <th style="text-align:right;padding:8px 6px;color:var(--danger);font-weight:600;">Expired</th>
-        <th style="text-align:right;padding:8px 6px;color:var(--text-2);font-weight:600;">Terminated</th>
-        <th style="text-align:right;padding:8px 6px;color:var(--text);font-weight:600;">Total</th>
-      </tr>
-    </thead>
-    <tbody id="status-table-body"></tbody>
-  </table>
-
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div class="section-title" style="margin:0;">Contracts</div>
-    <div class="pager-label" id="wl-count">— contracts</div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="details">Contract details</button>
   </div>
 
-  <div class="toolbar">
-    <input id="wl-search" type="text" placeholder="Search brand, vendor or city">
-    <select id="wl-status"><option value="">All Status</option></select>
-    <select id="wl-city"><option value="">All cities</option></select>
+  <div id="tab-dashboard" class="tab-panel">
+    <div class="section-title">Live brands by city</div>
+    <div id="live-by-city" style="margin-bottom:2rem;"></div>
+
+    <div class="section-title">Status by city</div>
+    <table id="status-table" style="width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:13px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);">
+          <th style="text-align:left;padding:8px 6px;color:var(--text-2);font-weight:600;">City</th>
+          <th style="text-align:right;padding:8px 6px;color:var(--success);font-weight:600;">Live</th>
+          <th style="text-align:right;padding:8px 6px;color:var(--warning);font-weight:600;">In progress</th>
+          <th style="text-align:right;padding:8px 6px;color:var(--danger);font-weight:600;">Expired</th>
+          <th style="text-align:right;padding:8px 6px;color:var(--text-2);font-weight:600;">Terminated</th>
+          <th style="text-align:right;padding:8px 6px;color:var(--text);font-weight:600;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="status-table-body"></tbody>
+    </table>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="section-title" style="margin:0;">Contracts</div>
+      <div class="pager-label" id="wl-count">— contracts</div>
+    </div>
+
+    <div class="toolbar">
+      <input id="wl-search" type="text" placeholder="Search brand, vendor or city">
+      <select id="wl-status"><option value="">All Status</option></select>
+      <select id="wl-city"><option value="">All cities</option></select>
+    </div>
+
+    <div class="row" style="border-bottom:1px solid var(--border);padding:6px 0;">
+      <div class="left-col"><div class="name" style="font-size:12px;color:var(--text-2);font-weight:600;">Brand name</div></div>
+      <div style="width:150px;text-align:left;font-size:12px;color:var(--text-2);font-weight:600;">Contract status</div>
+      <div class="date" style="font-size:12px;color:var(--text-2);font-weight:600;">End date</div>
+    </div>
+    <div id="wl-list"></div>
+
+    <div class="pager">
+      <button id="wl-prev">Prev</button>
+      <span class="pager-label" id="wl-page">Page 1</span>
+      <button id="wl-next">Next</button>
+    </div>
   </div>
 
-  <div class="row" style="border-bottom:1px solid var(--border);padding:6px 0;">
-    <div class="left-col"><div class="name" style="font-size:12px;color:var(--text-2);font-weight:600;">Brand name</div></div>
-    <div style="width:150px;text-align:left;font-size:12px;color:var(--text-2);font-weight:600;">Contract status</div>
-    <div class="date" style="font-size:12px;color:var(--text-2);font-weight:600;">End date</div>
-  </div>
-  <div id="wl-list"></div>
+  <div id="tab-details" class="tab-panel" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="section-title" style="margin:0;">Contract details</div>
+      <div class="pager-label" id="cd-count">— contracts</div>
+    </div>
 
-  <div class="pager">
-    <button id="wl-prev">Prev</button>
-    <span class="pager-label" id="wl-page">Page 1</span>
-    <button id="wl-next">Next</button>
+    <div class="toolbar">
+      <input id="cd-search" type="text" placeholder="Search brand, vendor, city or contract ID">
+      <select id="cd-status"><option value="">All Status</option></select>
+      <select id="cd-city"><option value="">All cities</option></select>
+    </div>
+
+    <div class="details-wrap">
+      <table id="details-table">
+        <thead>
+          <tr>
+            <th>Contract ID</th>
+            <th>Brand</th>
+            <th>City</th>
+            <th>Vendor</th>
+            <th>KAM</th>
+            <th>Contract Start Date</th>
+            <th>Contract End Date</th>
+            <th>Contract status</th>
+            <th>Live Date</th>
+            <th>LOB</th>
+            <th>Agreement Type</th>
+            <th>Commission%</th>
+            <th>Commission% applicable on</th>
+            <th>Locked in period</th>
+            <th>Notice Period</th>
+            <th>FNF Period</th>
+            <th>Expiry Flag</th>
+          </tr>
+        </thead>
+        <tbody id="details-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button id="cd-prev">Prev</button>
+      <span class="pager-label" id="cd-page">Page 1</span>
+      <button id="cd-next">Next</button>
+    </div>
   </div>
 
   <footer>Source: your Google Sheet's "Contract Dump - Raw" tab, fetched live via a published CSV link. Click Reload to re-fetch.</footer>
@@ -126,5 +193,15 @@
 
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script>
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
+      document.getElementById('tab-' + btn.dataset.tab).style.display = '';
+    });
+  });
+</script>
 </body>
 </html>

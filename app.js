@@ -51,14 +51,28 @@ function daysBetween(a, b) {
   return Math.round((b - a) / 86400000);
 }
 
+// mirrors the "Expiry Flag" logic from the original brand x city workbook
+function computeExpiryFlag(status, endDt, today) {
+  if (status === 'EXPIRED' || status === 'TERMINATED') return 'Expired';
+  if (endDt) {
+    const delta = daysBetween(today, endDt);
+    if (delta >= 0 && delta <= 60) return 'Expiring Soon (<=60d)';
+    if (delta < 0) return 'Past End Date - Check';
+  }
+  return 'Active';
+}
+
 // --- state ---
 let WATCHLIST = [];
 let CITY_STATUS = {};
+let ALL_CONTRACTS = [];
 let TOTAL_ROWS = 0;
 let LIVE_COUNT = 0;
 let ATTENTION_COUNT = 0;
 let page = 0;
 const perPage = 15;
+let cdPage = 0;
+const cdPerPage = 20;
 
 function setStatus(msg, isError) {
   const el = document.getElementById('status-msg');
@@ -137,8 +151,35 @@ async function loadData() {
     return a[5] - b[5];
   });
 
+  // full contract detail rows, one per unique brand+city (latest contract), for the "Contract details" tab
+  const allContracts = latestRows.map(rec => {
+    const status = rec.status || 'UNKNOWN';
+    const endDt = parseDate(rec.end_date);
+    return {
+      id: rec.contract_id || '',
+      brand: rec.brand_name || '',
+      city: rec.store_name || 'Unspecified',
+      vendor: rec.vendor_name || '',
+      kam: rec.bw_spoc_name || '',
+      start: rec.start_date || '',
+      end: rec.end_date || '',
+      status: status,
+      bucket: statusBucket(status),
+      liveDate: rec.agrmnt_live_date || '',
+      lob: rec.vendor_model || '',
+      agreementType: rec.agrmnt_model || '',
+      commission: rec.margin_percnt || '',
+      commissionOn: rec.margin_calculation_on || '',
+      lockin: rec.lockin_period || '',
+      notice: rec.exit_notice_period || '',
+      fnf: rec.exit_settlement_period || '',
+      expiryFlag: computeExpiryFlag(status, endDt, today)
+    };
+  }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
+
   CITY_STATUS = cityStatus;
   WATCHLIST = watchlist;
+  ALL_CONTRACTS = allContracts;
   LIVE_COUNT = statusCounts['LIVE'] || 0;
   ATTENTION_COUNT = attention;
 
@@ -146,6 +187,7 @@ async function loadData() {
   renderStatusTable();
   renderLiveByCity();
   setupWatchlist();
+  setupDetails();
 }
 
 function renderLiveByCity() {
@@ -277,5 +319,61 @@ document.getElementById('wl-status').addEventListener('change', () => { page = 0
 document.getElementById('wl-prev').addEventListener('click', () => { if (page > 0) { page--; renderWatchlist(); } });
 document.getElementById('wl-next').addEventListener('click', () => { page++; renderWatchlist(); });
 document.getElementById('reload-btn').addEventListener('click', loadData);
+
+// --- Contract details tab ---
+function setupDetails() {
+  const hiddenCities = ['BW-VAS', 'Unspecified'];
+  const citySet = [...new Set(ALL_CONTRACTS.map(r => r.city))].filter(c => !hiddenCities.includes(c)).sort();
+  const citySelect = document.getElementById('cd-city');
+  citySelect.innerHTML = '<option value="">All cities</option>';
+  citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
+
+  const statusSet = [...new Set(ALL_CONTRACTS.map(r => r.bucket))];
+  const order = ['Live', 'In progress', 'Expired', 'Terminated', 'Other'];
+  statusSet.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const statusSelect = document.getElementById('cd-status');
+  statusSelect.innerHTML = '<option value="">All Status</option>';
+  statusSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSelect.appendChild(o); });
+
+  cdPage = 0;
+  renderDetails();
+}
+
+function cell(val) {
+  return '<td>' + (val || '—') + '</td>';
+}
+
+function renderDetails() {
+  const q = document.getElementById('cd-search').value.toLowerCase();
+  const cityFilter = document.getElementById('cd-city').value;
+  const statusFilter = document.getElementById('cd-status').value;
+  const filtered = ALL_CONTRACTS.filter(r => {
+    const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.vendor.toLowerCase().includes(q) ||
+      r.city.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+    const matchesCity = !cityFilter || r.city === cityFilter;
+    const matchesStatus = !statusFilter || r.bucket === statusFilter;
+    return matchesQ && matchesCity && matchesStatus;
+  });
+  document.getElementById('cd-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
+  const maxPage = Math.max(0, Math.ceil(filtered.length / cdPerPage) - 1);
+  if (cdPage > maxPage) cdPage = maxPage;
+  const slice = filtered.slice(cdPage * cdPerPage, cdPage * cdPerPage + cdPerPage);
+  const tbody = document.getElementById('details-table-body');
+  tbody.innerHTML = slice.map(r => (
+    '<tr>' +
+      cell(r.id) + cell(r.brand) + cell(r.city) + cell(r.vendor) + cell(r.kam) +
+      cell(r.start) + cell(r.end) + cell(r.status) + cell(r.liveDate) + cell(r.lob) +
+      cell(r.agreementType) + cell(r.commission) + cell(r.commissionOn) +
+      cell(r.lockin) + cell(r.notice) + cell(r.fnf) + cell(r.expiryFlag) +
+    '</tr>'
+  )).join('') || '<tr><td colspan="17" style="color:var(--text-muted);">No matches.</td></tr>';
+  document.getElementById('cd-page').textContent = 'Page ' + (cdPage + 1) + ' of ' + (maxPage + 1);
+}
+
+document.getElementById('cd-search').addEventListener('input', () => { cdPage = 0; renderDetails(); });
+document.getElementById('cd-city').addEventListener('change', () => { cdPage = 0; renderDetails(); });
+document.getElementById('cd-status').addEventListener('change', () => { cdPage = 0; renderDetails(); });
+document.getElementById('cd-prev').addEventListener('click', () => { if (cdPage > 0) { cdPage--; renderDetails(); } });
+document.getElementById('cd-next').addEventListener('click', () => { cdPage++; renderDetails(); });
 
 loadData();
