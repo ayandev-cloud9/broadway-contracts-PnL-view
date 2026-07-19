@@ -70,6 +70,22 @@ function computeMonthlyRental(agreementValue, startDt, endDt) {
   return Math.round(v / months);
 }
 
+// Revenue depends on the agreement type:
+// FIXED = rental only, MARGIN = commission only, AND = rental + commission,
+// OR (and any other/unrecognized type) = whichever of rental/commission is higher.
+function computeRevenue(agreementType, rental, commission) {
+  const type = (agreementType || '').trim().toUpperCase();
+  const hasRental = rental !== null && rental !== undefined;
+  const hasCommission = commission !== null && commission !== undefined;
+  if (!hasRental && !hasCommission) return null;
+  const r = hasRental ? rental : 0;
+  const c = hasCommission ? commission : 0;
+  if (type === 'FIXED') return hasRental ? rental : null;
+  if (type === 'MARGIN') return hasCommission ? commission : null;
+  if (type === 'AND') return r + c;
+  return Math.max(r, c);
+}
+
 // If the commission base excludes GST (e.g. "Customer Selling Price without GST",
 // or anything not MRP/selling-price based), knock 18% GST off the commission%
 // before using it to compute money figures.
@@ -286,6 +302,10 @@ async function loadData() {
     const baseCM = onMrp ? mrpCM : netSalesCM;
     const baseLM = onMrp ? mrpLM : netSalesLM;
     const baseL2M = onMrp ? mrpL2M : netSalesL2M;
+    const monthlyRental = computeMonthlyRental(rec.agreement_value, startDt, endDt);
+    const commissionCM = baseCM != null ? Math.round(baseCM * commissionPct / 100) : null;
+    const commissionLM = baseLM != null ? Math.round(baseLM * commissionPct / 100) : null;
+    const commissionL2M = baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null;
 
     return {
       id: rec.contract_id || '',
@@ -307,7 +327,7 @@ async function loadData() {
       commission: rec.margin_percnt || '',
       actualCommission: rawCommissionPct ? Math.round(commissionPct) : '',
       commissionOn: rec.margin_calculation_on || '',
-      monthlyRental: computeMonthlyRental(rec.agreement_value, startDt, endDt),
+      monthlyRental: monthlyRental,
       lockin: rec.lockin_period || '',
       notice: rec.exit_notice_period || '',
       fnf: rec.exit_settlement_period || '',
@@ -320,13 +340,14 @@ async function loadData() {
       mrpCM: mrpCM,
       mrpLM: mrpLM,
       mrpL2M: mrpL2M,
-      // Commission = Net Sales x Commission%; Revenue earned = same figure (flagged assumption)
-      commissionCM: baseCM != null ? Math.round(baseCM * commissionPct / 100) : null,
-      commissionLM: baseLM != null ? Math.round(baseLM * commissionPct / 100) : null,
-      commissionL2M: baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null,
-      revenueCM: baseCM != null ? Math.round(baseCM * commissionPct / 100) : null,
-      revenueLM: baseLM != null ? Math.round(baseLM * commissionPct / 100) : null,
-      revenueL2M: baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null
+      // Commission = MRP or Net Sales (whichever the contract's commission basis is) x Commission%
+      commissionCM: commissionCM,
+      commissionLM: commissionLM,
+      commissionL2M: commissionL2M,
+      // Revenue depends on agreement type: FIXED=rental, MARGIN=commission, AND=rental+commission, OR=higher of the two
+      revenueCM: computeRevenue(rec.agrmnt_model, monthlyRental, commissionCM),
+      revenueLM: computeRevenue(rec.agrmnt_model, monthlyRental, commissionLM),
+      revenueL2M: computeRevenue(rec.agrmnt_model, monthlyRental, commissionL2M)
     };
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
 
