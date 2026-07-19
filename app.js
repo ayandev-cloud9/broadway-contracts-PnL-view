@@ -829,7 +829,8 @@ function renderSummary() {
     cell.l2m += r.revenueL2M || 0;
   });
 
-  const rupee = v => '₹' + Math.round(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  // Summary tab shows everything in lakhs (₹1L = ₹1,00,000) for compactness
+  const rupee = v => '₹' + ((v || 0) / 100000).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'L';
 
   // roll up cm/lm/l2m totals by city and by category, plus the grand total
   const cityTotals = {};
