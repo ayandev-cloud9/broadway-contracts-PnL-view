@@ -55,9 +55,12 @@
   .row .left-col{flex:1;min-width:0;}
   .row .date{width:90px;text-align:right;font-size:13px;flex-shrink:0;}
   .row .days{width:64px;text-align:right;font-size:12px;color:var(--text-2);flex-shrink:0;}
-  .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius);flex-shrink:0;}
+  .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--radius);flex-shrink:0;white-space:nowrap;}
   .badge.live{background:var(--success-bg);color:var(--success);}
   .badge.pending{background:var(--warning-bg);color:var(--warning);}
+  .badge.expired{background:var(--danger-bg);color:var(--danger);}
+  .badge.terminated{background:var(--surface-2);color:var(--text-2);}
+  .badge.other{background:var(--surface-2);color:var(--text-muted);}
   .pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);
@@ -96,12 +99,13 @@
   </table>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div class="section-title" style="margin:0;">Watchlist — expiring soon</div>
+    <div class="section-title" style="margin:0;">Contracts</div>
     <div class="pager-label" id="wl-count">— contracts</div>
   </div>
 
   <div class="toolbar">
     <input id="wl-search" type="text" placeholder="Search brand, vendor or city">
+    <select id="wl-status"><option value="">All statuses</option></select>
     <select id="wl-city"><option value="">All cities</option></select>
   </div>
 

@@ -122,15 +122,18 @@ async function loadData() {
     if (status === 'EXPIRED' || status === 'TERMINATED' || status === 'VENDOR_REVIEW') attention++;
 
     const endDt = parseDate(rec.end_date);
-    if (endDt && (status === 'LIVE' || status === 'PENDING')) {
-      const delta = daysBetween(today, endDt);
-      if (delta >= 0 && delta <= WATCHLIST_DAYS) {
-        watchlist.push([rec.brand_name, city, rec.vendor_name || '', status, rec.end_date, delta]);
-      }
-    }
+    const delta = endDt ? daysBetween(today, endDt) : null;
+    // include every contract, tagged with a status bucket so the dropdown can filter by it
+    watchlist.push([rec.brand_name, city, rec.vendor_name || '', status, rec.end_date || '—', delta, statusBucket(status)]);
   });
 
-  watchlist.sort((a, b) => a[5] - b[5]);
+  // soonest-expiring first; entries with no end date sort last
+  watchlist.sort((a, b) => {
+    if (a[5] === null && b[5] === null) return 0;
+    if (a[5] === null) return 1;
+    if (b[5] === null) return -1;
+    return a[5] - b[5];
+  });
 
   CITY_STATUS = cityStatus;
   WATCHLIST = watchlist;
@@ -182,10 +185,22 @@ function renderStatusTable() {
   )).join('');
 }
 
-function statusBadge(s) {
-  return s === 'LIVE'
-    ? '<span class="badge live">Live</span>'
-    : '<span class="badge pending">Pending</span>';
+// groups the raw sheet status values into the 4 buckets shown in the dropdown
+function statusBucket(status) {
+  if (status === 'LIVE') return 'Live';
+  if (status === 'PENDING' || status === 'APPROVED_BY_VENDOR' || status === 'VENDOR_REVIEW' || status === 'APPROVED_BY_ADMIN') return 'In progress';
+  if (status === 'EXPIRED') return 'Expired';
+  if (status === 'TERMINATED') return 'Terminated';
+  return 'Other';
+}
+
+function statusBadge(bucket) {
+  const cls = bucket === 'Live' ? 'live'
+    : bucket === 'In progress' ? 'pending'
+    : bucket === 'Expired' ? 'expired'
+    : bucket === 'Terminated' ? 'terminated'
+    : 'other';
+  return '<span class="badge ' + cls + '">' + bucket + '</span>';
 }
 
 function setupWatchlist() {
@@ -193,6 +208,14 @@ function setupWatchlist() {
   const citySelect = document.getElementById('wl-city');
   citySelect.innerHTML = '<option value="">All cities</option>';
   citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
+
+  const statusSet = [...new Set(WATCHLIST.map(r => r[6]))].sort();
+  const order = ['Live', 'In progress', 'Expired', 'Terminated', 'Other'];
+  statusSet.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const statusSelect = document.getElementById('wl-status');
+  statusSelect.innerHTML = '<option value="">All statuses</option>';
+  statusSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSelect.appendChild(o); });
+
   page = 0;
   renderWatchlist();
 }
@@ -200,10 +223,12 @@ function setupWatchlist() {
 function renderWatchlist() {
   const q = document.getElementById('wl-search').value.toLowerCase();
   const cityFilter = document.getElementById('wl-city').value;
+  const statusFilter = document.getElementById('wl-status').value;
   const filtered = WATCHLIST.filter(r => {
     const matchesQ = !q || r[0].toLowerCase().includes(q) || r[2].toLowerCase().includes(q) || r[1].toLowerCase().includes(q);
     const matchesCity = !cityFilter || r[1] === cityFilter;
-    return matchesQ && matchesCity;
+    const matchesStatus = !statusFilter || r[6] === statusFilter;
+    return matchesQ && matchesCity && matchesStatus;
   });
   document.getElementById('wl-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / perPage) - 1);
@@ -216,9 +241,9 @@ function renderWatchlist() {
         '<div class="name">' + r[0] + '</div>' +
         '<div class="meta">' + r[2] + ' &middot; ' + r[1] + '</div>' +
       '</div>' +
-      statusBadge(r[3]) +
+      statusBadge(r[6]) +
       '<div class="date">' + r[4] + '</div>' +
-      '<div class="days">' + r[5] + 'd left</div>' +
+      '<div class="days">' + (r[5] === null ? '—' : r[5] + 'd left') + '</div>' +
     '</div>'
   )).join('') || '<div style="padding:16px 0;color:var(--text-muted);font-size:13px;">No matches.</div>';
   document.getElementById('wl-page').textContent = 'Page ' + (page + 1) + ' of ' + (maxPage + 1);
@@ -226,6 +251,7 @@ function renderWatchlist() {
 
 document.getElementById('wl-search').addEventListener('input', () => { page = 0; renderWatchlist(); });
 document.getElementById('wl-city').addEventListener('change', () => { page = 0; renderWatchlist(); });
+document.getElementById('wl-status').addEventListener('change', () => { page = 0; renderWatchlist(); });
 document.getElementById('wl-prev').addEventListener('click', () => { if (page > 0) { page--; renderWatchlist(); } });
 document.getElementById('wl-next').addEventListener('click', () => { page++; renderWatchlist(); });
 document.getElementById('reload-btn').addEventListener('click', loadData);
