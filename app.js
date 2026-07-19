@@ -137,7 +137,7 @@ async function loadData() {
     }
   }
 
-  // brand|city -> { lm: netSales, l2m: netSales }, from the "Previous Month" tab
+  // brand|city -> { lm, l2m, lmMrp, l2mMrp }, from the "Previous Month" tab
   // (month_delta: 1 = last month (LM), 2 = 2 months ago (L2M))
   const prevMonthMap = {};
   if (typeof PREV_MONTH_CSV_URL === 'string' && PREV_MONTH_CSV_URL && PREV_MONTH_CSV_URL.indexOf('PASTE_YOUR') !== 0) {
@@ -151,10 +151,11 @@ async function loadData() {
           if (!brand || !city) return;
           const key = brand.toLowerCase() + '|' + city.toLowerCase();
           const sales = parseFloat(rec.net_sales) || 0;
+          const mrp = parseFloat(rec.mrp) || 0;
           const delta = parseInt(rec.month_delta, 10);
-          if (!prevMonthMap[key]) prevMonthMap[key] = { lm: 0, l2m: 0 };
-          if (delta === 1) prevMonthMap[key].lm += sales;
-          else if (delta === 2) prevMonthMap[key].l2m += sales;
+          if (!prevMonthMap[key]) prevMonthMap[key] = { lm: 0, l2m: 0, lmMrp: 0, l2mMrp: 0 };
+          if (delta === 1) { prevMonthMap[key].lm += sales; prevMonthMap[key].lmMrp += mrp; }
+          else if (delta === 2) { prevMonthMap[key].l2m += sales; prevMonthMap[key].l2mMrp += mrp; }
         });
       }
     } catch (e) {
@@ -162,7 +163,7 @@ async function loadData() {
     }
   }
 
-  // brand|city -> net sales logged so far this month, from the "Forecast Dump" tab
+  // brand|city -> { netSales, mrp } logged so far this month, from the "Forecast Dump" tab
   const cmMap = {};
   if (typeof FORECAST_CSV_URL === 'string' && FORECAST_CSV_URL && FORECAST_CSV_URL.indexOf('PASTE_YOUR') !== 0) {
     try {
@@ -175,7 +176,10 @@ async function loadData() {
           if (!brand || !city) return;
           const key = brand.toLowerCase() + '|' + city.toLowerCase();
           const sales = parseFloat(rec.net_sales) || 0;
-          cmMap[key] = (cmMap[key] || 0) + sales;
+          const mrp = parseFloat(rec.mrp) || 0;
+          if (!cmMap[key]) cmMap[key] = { netSales: 0, mrp: 0 };
+          cmMap[key].netSales += sales;
+          cmMap[key].mrp += mrp;
         });
       }
     } catch (e) {
@@ -256,10 +260,14 @@ async function loadData() {
     const joinKey = brandKey + '|' + cityKey;
     const commissionPct = parseFloat(rec.margin_percnt) || 0;
 
-    const netSalesCM = cmMap[joinKey] != null ? cmMap[joinKey] : null;
+    const cmEntry = cmMap[joinKey];
+    const netSalesCM = cmEntry ? Math.round(cmEntry.netSales) : null;
+    const mrpCM = cmEntry ? Math.round(cmEntry.mrp) : null;
     const prevMonth = prevMonthMap[joinKey];
-    const netSalesLM = prevMonth ? prevMonth.lm : null;
-    const netSalesL2M = prevMonth ? prevMonth.l2m : null;
+    const netSalesLM = prevMonth ? Math.round(prevMonth.lm) : null;
+    const netSalesL2M = prevMonth ? Math.round(prevMonth.l2m) : null;
+    const mrpLM = prevMonth ? Math.round(prevMonth.lmMrp) : null;
+    const mrpL2M = prevMonth ? Math.round(prevMonth.l2mMrp) : null;
 
     return {
       id: rec.contract_id || '',
@@ -287,6 +295,10 @@ async function loadData() {
       netSalesCM: netSalesCM,
       netSalesLM: netSalesLM,
       netSalesL2M: netSalesL2M,
+      // MRP Exp. (CM) / MRP (LM) / MRP (L2M)
+      mrpCM: mrpCM,
+      mrpLM: mrpLM,
+      mrpL2M: mrpL2M,
       // Commission = Net Sales x Commission%; Revenue earned = same figure (flagged assumption)
       commissionCM: netSalesCM != null ? Math.round(netSalesCM * commissionPct / 100) : null,
       commissionLM: netSalesLM != null ? Math.round(netSalesLM * commissionPct / 100) : null,
@@ -582,18 +594,19 @@ function renderRevenue() {
   const maxPage = Math.max(0, Math.ceil(filtered.length / rvPerPage) - 1);
   if (rvPage > maxPage) rvPage = maxPage;
   const slice = filtered.slice(rvPage * rvPerPage, rvPage * rvPerPage + rvPerPage);
-  const rupee = v => v !== null && v !== undefined ? '₹' + v.toLocaleString('en-IN') : null;
+  const rupee = v => v !== null && v !== undefined ? '₹' + Math.round(v).toLocaleString('en-IN', { maximumFractionDigits: 0 }) : null;
   const tbody = document.getElementById('revenue-table-body');
   tbody.innerHTML = slice.map(r => (
     '<tr>' +
       cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category) + cell(r.subCategory) + cell(r.kam) + cell(r.agreementType) +
-      cell(r.monthlyRental !== null ? '₹' + r.monthlyRental.toLocaleString('en-IN') : null, 'money') +
+      cell(r.monthlyRental !== null ? rupee(r.monthlyRental) : null, 'money') +
       cell(r.commission ? r.commission + '%' : null, 'money') +
       cell(rupee(r.netSalesCM)) + cell(rupee(r.netSalesLM)) + cell(rupee(r.netSalesL2M)) +
+      cell(rupee(r.mrpCM)) + cell(rupee(r.mrpLM)) + cell(rupee(r.mrpL2M)) +
       cell(rupee(r.commissionCM), 'money') + cell(rupee(r.commissionLM), 'money') + cell(rupee(r.commissionL2M), 'money') +
       cell(rupee(r.revenueCM), 'money') + cell(rupee(r.revenueLM), 'money') + cell(rupee(r.revenueL2M), 'money') +
     '</tr>'
-  )).join('') || '<tr><td colspan="17" style="color:var(--text-muted);">No matches.</td></tr>';
+  )).join('') || '<tr><td colspan="20" style="color:var(--text-muted);">No matches.</td></tr>';
   document.getElementById('rv-page').textContent = 'Page ' + (rvPage + 1) + ' of ' + (maxPage + 1);
 }
 
