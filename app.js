@@ -75,6 +75,7 @@ let WATCHLIST = [];
 let CITY_STATUS = {};
 let CATEGORY_STATUS = {};
 let ALL_CONTRACTS = [];
+let REVENUE_BY_BRAND = [];
 let TOTAL_ROWS = 0;
 let LIVE_COUNT = 0;
 let ATTENTION_COUNT = 0;
@@ -82,6 +83,8 @@ let page = 0;
 const perPage = 15;
 let cdPage = 0;
 const cdPerPage = 20;
+let rvPage = 0;
+const rvPerPage = 20;
 // junk/placeholder city labels, excluded from city + category rollups (still visible under "All cities")
 const HIDDEN_CITIES = ['BW-VAS', 'Unspecified'];
 
@@ -228,10 +231,28 @@ async function loadData() {
     };
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
 
+  // revenue rollup per brand, for the "Revenue" tab
+  const revenueByBrand = {};
+  allContracts.forEach(c => {
+    const key = c.brand;
+    if (!revenueByBrand[key]) {
+      revenueByBrand[key] = { brand: c.brand, category: c.category || 'Uncategorized', cities: new Set(), contracts: 0, live: 0, revenue: 0 };
+    }
+    const r = revenueByBrand[key];
+    r.cities.add(c.city);
+    r.contracts++;
+    if (c.bucket === 'Live') r.live++;
+    if (c.monthlyRental) r.revenue += c.monthlyRental;
+  });
+  const revenueRows = Object.values(revenueByBrand).map(r => ({
+    brand: r.brand, category: r.category, cities: r.cities.size, contracts: r.contracts, live: r.live, revenue: r.revenue
+  })).sort((a, b) => b.revenue - a.revenue);
+
   CITY_STATUS = cityStatus;
   CATEGORY_STATUS = categoryStatus;
   WATCHLIST = watchlist;
   ALL_CONTRACTS = allContracts;
+  REVENUE_BY_BRAND = revenueRows;
   LIVE_COUNT = statusCounts['LIVE'] || 0;
   ATTENTION_COUNT = attention;
 
@@ -240,6 +261,7 @@ async function loadData() {
   renderLiveByCity();
   setupWatchlist();
   setupDetails();
+  setupRevenue();
 }
 
 function renderLiveByCity() {
@@ -480,5 +502,46 @@ document.getElementById('cd-status').addEventListener('change', () => { cdPage =
 document.getElementById('cd-category').addEventListener('change', () => { cdPage = 0; renderDetails(); });
 document.getElementById('cd-prev').addEventListener('click', () => { if (cdPage > 0) { cdPage--; renderDetails(); } });
 document.getElementById('cd-next').addEventListener('click', () => { cdPage++; renderDetails(); });
+
+// --- Revenue tab ---
+function setupRevenue() {
+  const categorySet = [...new Set(REVENUE_BY_BRAND.map(r => r.category))].sort();
+  const categorySelect = document.getElementById('rv-category');
+  categorySelect.innerHTML = '<option value="">All categories</option>';
+  categorySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; categorySelect.appendChild(o); });
+
+  rvPage = 0;
+  renderRevenue();
+}
+
+function renderRevenue() {
+  const q = document.getElementById('rv-search').value.toLowerCase();
+  const categoryFilter = document.getElementById('rv-category').value;
+  const filtered = REVENUE_BY_BRAND.filter(r => {
+    const matchesQ = !q || r.brand.toLowerCase().includes(q);
+    const matchesCategory = !categoryFilter || r.category === categoryFilter;
+    return matchesQ && matchesCategory;
+  });
+  document.getElementById('rv-count').textContent = filtered.length + ' brand' + (filtered.length === 1 ? '' : 's');
+  const maxPage = Math.max(0, Math.ceil(filtered.length / rvPerPage) - 1);
+  if (rvPage > maxPage) rvPage = maxPage;
+  const slice = filtered.slice(rvPage * rvPerPage, rvPage * rvPerPage + rvPerPage);
+  const tbody = document.getElementById('revenue-table-body');
+  tbody.innerHTML = slice.map(r => (
+    '<tr>' +
+      cell(r.brand, 'brand-cell') + cell(r.category) +
+      '<td style="text-align:right;">' + r.cities + '</td>' +
+      '<td style="text-align:right;">' + r.contracts + '</td>' +
+      '<td style="text-align:right;color:var(--success);font-weight:600;">' + r.live + '</td>' +
+      '<td style="text-align:right;" class="money">₹' + r.revenue.toLocaleString('en-IN') + '</td>' +
+    '</tr>'
+  )).join('') || '<tr><td colspan="6" style="color:var(--text-muted);">No matches.</td></tr>';
+  document.getElementById('rv-page').textContent = 'Page ' + (rvPage + 1) + ' of ' + (maxPage + 1);
+}
+
+document.getElementById('rv-search').addEventListener('input', () => { rvPage = 0; renderRevenue(); });
+document.getElementById('rv-category').addEventListener('change', () => { rvPage = 0; renderRevenue(); });
+document.getElementById('rv-prev').addEventListener('click', () => { if (rvPage > 0) { rvPage--; renderRevenue(); } });
+document.getElementById('rv-next').addEventListener('click', () => { rvPage++; renderRevenue(); });
 
 loadData();

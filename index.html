@@ -65,17 +65,19 @@
   .tab-btn:hover{background:var(--accent-2);color:var(--accent);}
   .tab-btn.active{color:var(--accent);background:var(--accent-2);border-bottom-color:var(--accent);}
   .details-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
-  #details-table{border-collapse:collapse;font-size:12.5px;min-width:1150px;width:100%;}
-  #details-table th{
+  #details-table, #revenue-table{border-collapse:collapse;font-size:12.5px;width:100%;}
+  #details-table{min-width:1150px;}
+  #revenue-table{min-width:700px;}
+  #details-table th, #revenue-table th{
     text-align:left;padding:10px 12px;color:#ffffff;font-weight:700;white-space:nowrap;
     border-bottom:2px solid var(--accent);position:sticky;top:0;background:var(--accent);
   }
-  #details-table td{padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--border);}
-  #details-table tbody tr:nth-child(even){background:var(--surface-2);}
-  #details-table tbody tr:hover{background:#dbe8ff;}
-  #details-table td.money{color:var(--success);font-weight:700;}
-  #details-table td.muted{color:var(--text-muted);}
-  #details-table td.brand-cell{font-weight:700;color:var(--accent);}
+  #details-table td, #revenue-table td{padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--border);}
+  #details-table tbody tr:nth-child(even), #revenue-table tbody tr:nth-child(even){background:var(--surface-2);}
+  #details-table tbody tr:hover, #revenue-table tbody tr:hover{background:#dbe8ff;}
+  #details-table td.money, #revenue-table td.money{color:var(--success);font-weight:700;}
+  #details-table td.muted, #revenue-table td.muted{color:var(--text-muted);}
+  #details-table td.brand-cell, #revenue-table td.brand-cell{font-weight:700;color:var(--accent);}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--accent);
     background:var(--surface);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;
@@ -97,6 +99,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="details">Contract details</button>
+    <button class="tab-btn" data-tab="revenue">Revenue</button>
   </div>
 
   <div id="tab-dashboard" class="tab-panel">
@@ -183,6 +186,41 @@
       <button id="cd-prev">Prev</button>
       <span class="pager-label" id="cd-page">Page 1</span>
       <button id="cd-next">Next</button>
+    </div>
+  </div>
+
+  <div id="tab-revenue" class="tab-panel" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="section-title" style="margin:0;">Revenue x Brand</div>
+      <div class="pager-label" id="rv-count">— brands</div>
+    </div>
+    <p class="sub" style="margin-top:0;">Revenue = sum of Monthly Rental (agreement value &divide; contract duration) across each brand's live/current contracts.</p>
+
+    <div class="toolbar">
+      <input id="rv-search" type="text" placeholder="Search brand">
+      <select id="rv-category"><option value="">All categories</option></select>
+    </div>
+
+    <div class="details-wrap">
+      <table id="revenue-table">
+        <thead>
+          <tr>
+            <th>Brand</th>
+            <th>Category</th>
+            <th style="text-align:right;">Cities</th>
+            <th style="text-align:right;">Contracts</th>
+            <th style="text-align:right;">Live</th>
+            <th style="text-align:right;">Total Monthly Rental</th>
+          </tr>
+        </thead>
+        <tbody id="revenue-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button id="rv-prev">Prev</button>
+      <span class="pager-label" id="rv-page">Page 1</span>
+      <button id="rv-next">Next</button>
     </div>
   </div>
 
