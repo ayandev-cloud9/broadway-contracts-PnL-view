@@ -790,6 +790,15 @@ function renderSummary() {
   const wrap = document.getElementById('summary-wrap');
   if (!wrap) return;
 
+  const kpiRevenueEl = document.getElementById('sum-kpi-revenue');
+  const kpiChangeEl = document.getElementById('sum-kpi-revenue-change');
+  const kpiCityEl = document.getElementById('sum-kpi-top-city');
+  const kpiCityValEl = document.getElementById('sum-kpi-top-city-value');
+  const kpiCatEl = document.getElementById('sum-kpi-top-category');
+  const kpiCatValEl = document.getElementById('sum-kpi-top-category-value');
+  const cityChartEl = document.getElementById('sum-city-chart');
+  const catChartEl = document.getElementById('sum-category-chart');
+
   // same contracts the Revenue tab shows: hidden cities out, long-expired contracts out
   const source = ALL_CONTRACTS.filter(r => !HIDDEN_CITIES.includes(r.city) && (r.bucket !== 'Expired' || r.recentlyExpired));
 
@@ -798,6 +807,11 @@ function renderSummary() {
 
   if (!cities.length || !categories.length) {
     wrap.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px;">No data to summarize yet.</p>';
+    if (cityChartEl) cityChartEl.innerHTML = '';
+    if (catChartEl) catChartEl.innerHTML = '';
+    if (kpiRevenueEl) kpiRevenueEl.textContent = '—';
+    if (kpiCityEl) kpiCityEl.textContent = '—';
+    if (kpiCatEl) kpiCatEl.textContent = '—';
     return;
   }
 
@@ -817,6 +831,76 @@ function renderSummary() {
 
   const rupee = v => '₹' + Math.round(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
+  // roll up cm/lm/l2m totals by city and by category, plus the grand total
+  const cityTotals = {};
+  cities.forEach(city => { cityTotals[city] = { cm: 0, lm: 0, l2m: 0 }; });
+  const categoryTotals = {};
+  categories.forEach(cat => { categoryTotals[cat] = { cm: 0, lm: 0, l2m: 0 }; });
+  let grandCM = 0, grandLM = 0;
+  categories.forEach(cat => {
+    cities.forEach(city => {
+      const v = agg[cat][city];
+      cityTotals[city].cm += v.cm; cityTotals[city].lm += v.lm; cityTotals[city].l2m += v.l2m;
+      categoryTotals[cat].cm += v.cm; categoryTotals[cat].lm += v.lm; categoryTotals[cat].l2m += v.l2m;
+      grandCM += v.cm; grandLM += v.lm;
+    });
+  });
+
+  // KPI 1: total revenue this month + month-over-month change
+  if (kpiRevenueEl) kpiRevenueEl.textContent = rupee(grandCM);
+  if (kpiChangeEl) {
+    if (grandLM > 0) {
+      const pct = ((grandCM - grandLM) / grandLM) * 100;
+      const up = pct >= 0;
+      kpiChangeEl.textContent = (up ? '▲ ' : '▼ ') + Math.abs(Math.round(pct)) + '% vs last month';
+      kpiChangeEl.style.color = up ? 'var(--success)' : 'var(--danger)';
+    } else {
+      kpiChangeEl.textContent = 'No last-month data yet';
+      kpiChangeEl.style.color = 'var(--text-muted)';
+    }
+  }
+
+  // KPI 2/3: top city and top category by current-month revenue
+  const topCity = cities.reduce((best, c) => (!best || cityTotals[c].cm > cityTotals[best].cm) ? c : best, null);
+  if (kpiCityEl) kpiCityEl.textContent = topCity || '—';
+  if (kpiCityValEl) kpiCityValEl.textContent = topCity ? rupee(cityTotals[topCity].cm) + ' this month' : '';
+
+  const topCategory = categories.reduce((best, c) => (!best || categoryTotals[c].cm > categoryTotals[best].cm) ? c : best, null);
+  if (kpiCatEl) kpiCatEl.textContent = topCategory || '—';
+  if (kpiCatValEl) kpiCatValEl.textContent = topCategory ? rupee(categoryTotals[topCategory].cm) + ' this month' : '';
+
+  // chart: revenue by city (vertical bars)
+  if (cityChartEl) {
+    const maxCity = Math.max(1, ...cities.map(c => cityTotals[c].cm));
+    cityChartEl.innerHTML = cities.map((city, i) => {
+      const col = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
+      const h = Math.max(4, Math.round((cityTotals[city].cm / maxCity) * 100));
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;">' +
+        '<div style="font-size:10.5px;color:var(--text-2);margin-bottom:4px;white-space:nowrap;">' + rupee(cityTotals[city].cm) + '</div>' +
+        '<div style="width:60%;border-radius:4px 4px 0 0;background:' + col.bg + ';height:' + h + 'px;"></div>' +
+        '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + city + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // chart: revenue by category (horizontal bars, highest first)
+  if (catChartEl) {
+    const sortedCats = [...categories].sort((a, b) => categoryTotals[b].cm - categoryTotals[a].cm);
+    const maxCat = Math.max(1, ...sortedCats.map(c => categoryTotals[c].cm));
+    catChartEl.innerHTML = sortedCats.map(cat => {
+      const pct = Math.max(2, Math.round((categoryTotals[cat].cm / maxCat) * 100));
+      return '<div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:3px;">' +
+          '<span style="font-weight:600;color:var(--text);">' + cat + '</span><span>' + rupee(categoryTotals[cat].cm) + '</span>' +
+        '</div>' +
+        '<div style="background:var(--surface-2);border-radius:5px;height:8px;">' +
+          '<div style="background:var(--accent);width:' + pct + '%;height:8px;border-radius:5px;"></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // full pivot table, collapsed behind a <details> for anyone who wants row-level detail
   const cityHeaderRow = '<tr class="city-row">' +
     '<th class="cat-cell">Category</th>' +
     cities.map((city, i) => {
@@ -840,19 +924,10 @@ function renderSummary() {
     '</tr>'
   )).join('');
 
-  const grandTotals = {};
-  cities.forEach(city => { grandTotals[city] = { cm: 0, lm: 0, l2m: 0 }; });
-  categories.forEach(cat => {
-    cities.forEach(city => {
-      grandTotals[city].cm += agg[cat][city].cm;
-      grandTotals[city].lm += agg[cat][city].lm;
-      grandTotals[city].l2m += agg[cat][city].l2m;
-    });
-  });
   const totalRow = '<tr>' +
     '<td class="cat-cell">Total</td>' +
     cities.map(city => {
-      const v = grandTotals[city];
+      const v = cityTotals[city];
       return '<td>' + rupee(v.cm) + '</td><td>' + rupee(v.lm) + '</td><td>' + rupee(v.l2m) + '</td>';
     }).join('') +
     '</tr>';

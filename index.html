@@ -258,9 +258,42 @@
   </div>
 
   <div id="tab-summary" class="tab-panel" style="display:none;">
-    <div class="section-title">Revenue summary — Category x City</div>
-    <p class="sub" style="margin-top:0;">Same Revenue figures as the Revenue tab, totaled by Category and City. CM = current month, LM = last month, L2M = 2 months ago. Contracts expired more than ~2 months ago are excluded; recently expired ones show 0 for CM but keep their LM/L2M revenue.</p>
-    <div id="summary-wrap" class="details-wrap"></div>
+    <div class="section-title">Executive summary — Revenue</div>
+    <p class="sub" style="margin-top:0;">Same Revenue figures as the Revenue tab (CM = current month, LM = last month, L2M = 2 months ago). Contracts expired more than ~2 months ago are excluded; recently expired ones count 0 for CM but keep their LM/L2M revenue.</p>
+
+    <div class="cards" style="margin-bottom:1.5rem;">
+      <div class="card">
+        <div class="label">Revenue (This Month)</div>
+        <div class="value" id="sum-kpi-revenue">—</div>
+        <div id="sum-kpi-revenue-change" style="font-size:12px;font-weight:600;margin-top:4px;"></div>
+      </div>
+      <div class="card">
+        <div class="label">Top City</div>
+        <div class="value" id="sum-kpi-top-city">—</div>
+        <div id="sum-kpi-top-city-value" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+      </div>
+      <div class="card">
+        <div class="label">Top Category</div>
+        <div class="value" id="sum-kpi-top-category">—</div>
+        <div id="sum-kpi-top-category-value" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem;">
+      <div style="border:1px solid var(--border);border-radius:12px;padding:1rem;">
+        <div class="section-title">Revenue by City (CM)</div>
+        <div id="sum-city-chart" style="display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px;"></div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:1rem;">
+        <div class="section-title">Revenue by Category (CM)</div>
+        <div id="sum-category-chart" style="display:flex;flex-direction:column;gap:9px;"></div>
+      </div>
+    </div>
+
+    <details style="border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--accent);">Show full breakdown (all categories x cities)</summary>
+      <div id="summary-wrap" class="details-wrap" style="margin-top:12px;"></div>
+    </details>
   </div>
 
   <footer>Source: your Google Sheet's "Contract Dump - Raw" tab, fetched live via a published CSV link. Click Reload to re-fetch.</footer>
