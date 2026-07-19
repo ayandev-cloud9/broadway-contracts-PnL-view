@@ -262,9 +262,8 @@ function renderWatchlist() {
         '<div class="name">' + r[0] + '</div>' +
         '<div class="meta">' + r[2] + ' &middot; ' + r[1] + '</div>' +
       '</div>' +
-      statusBadge(r[3], r[6]) +
+      '<div style="width:150px;flex-shrink:0;">' + statusBadge(r[3], r[6]) + '</div>' +
       '<div class="date">' + r[4] + '</div>' +
-      '<div class="days">' + (r[5] === null ? '—' : r[5] + 'd left') + '</div>' +
     '</div>'
   )).join('') || '<div style="padding:16px 0;color:var(--text-muted);font-size:13px;">No matches.</div>';
   document.getElementById('wl-page').textContent = 'Page ' + (page + 1) + ' of ' + (maxPage + 1);
