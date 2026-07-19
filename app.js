@@ -110,6 +110,28 @@ async function loadData() {
     return;
   }
 
+  // brand -> {category, subCategory}, from the "Primary Brand Mapping" tab (best-effort; ok if it fails)
+  const brandMap = {};
+  if (typeof MAPPING_CSV_URL === 'string' && MAPPING_CSV_URL && MAPPING_CSV_URL.indexOf('PASTE_YOUR') !== 0) {
+    try {
+      const mapResp = await fetch(MAPPING_CSV_URL, { cache: 'no-store' });
+      if (mapResp.ok) {
+        const mapText = await mapResp.text();
+        const mapRecords = toRecords(parseCSV(mapText));
+        mapRecords.forEach(rec => {
+          const brand = (rec.brand_name || '').trim();
+          if (!brand) return;
+          brandMap[brand.toLowerCase()] = {
+            category: rec.changed_category || '',
+            subCategory: rec.changed_sub_category || ''
+          };
+        });
+      }
+    } catch (e) {
+      // mapping tab is optional — Category/Sub category just stay blank if this fails
+    }
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -164,13 +186,14 @@ async function loadData() {
     const status = rec.status || 'UNKNOWN';
     const startDt = parseDate(rec.start_date);
     const endDt = parseDate(rec.end_date);
+    const mapped = brandMap[(rec.brand_name || '').trim().toLowerCase()] || {};
     return {
       id: rec.contract_id || '',
       brand: rec.brand_name || '',
       city: rec.store_name || 'Unspecified',
       vendor: rec.vendor_name || '',
-      category: '',      // not present in the source sheet
-      subCategory: '',   // not present in the source sheet
+      category: mapped.category || '',
+      subCategory: mapped.subCategory || '',
       kam: rec.bw_spoc_name || '',
       start: rec.start_date || '',
       end: rec.end_date || '',
@@ -361,7 +384,8 @@ function renderDetails() {
   const statusFilter = document.getElementById('cd-status').value;
   const filtered = ALL_CONTRACTS.filter(r => {
     const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.vendor.toLowerCase().includes(q) ||
-      r.city.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+      r.city.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) ||
+      r.category.toLowerCase().includes(q) || r.subCategory.toLowerCase().includes(q);
     const matchesCity = !cityFilter || r.city === cityFilter;
     const matchesStatus = !statusFilter || r.bucket === statusFilter;
     return matchesQ && matchesCity && matchesStatus;
@@ -373,7 +397,7 @@ function renderDetails() {
   const tbody = document.getElementById('details-table-body');
   tbody.innerHTML = slice.map(r => (
     '<tr>' +
-      cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category, 'muted') + cell(r.subCategory, 'muted') + cell(r.kam) +
+      cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category) + cell(r.subCategory) + cell(r.kam) +
       cell(r.start) + '<td>' + statusBadge(r.status, r.bucket) + '</td>' + cell(r.end) +
       cell(r.agreementType) + cell(r.commissionOn) +
       cell(r.monthlyRental !== null ? '₹' + r.monthlyRental.toLocaleString('en-IN') : null, 'money') +
