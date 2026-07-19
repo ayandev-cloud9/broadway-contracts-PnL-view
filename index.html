@@ -77,12 +77,8 @@
     <button id="reload-btn">Reload</button>
   </div>
 
-  <div class="cards">
-    <div class="card"><div class="label">Brand x city pairs</div><div class="value" id="card-total">—</div></div>
-    <div class="card"><div class="label">Live now</div><div class="value" id="card-live" style="color:var(--success);">—</div></div>
-    <div class="card"><div class="label">Expiring soon</div><div class="value" id="card-expiring" style="color:var(--warning);">—</div></div>
-    <div class="card"><div class="label">Needs attention</div><div class="value" id="card-attention" style="color:var(--danger);">—</div></div>
-  </div>
+  <div class="section-title">Live brands by city</div>
+  <div id="live-by-city" style="margin-bottom:2rem;"></div>
 
   <div class="section-title">Status by city</div>
   <div class="chart-box">
@@ -94,9 +90,6 @@
     <span><span class="dot" style="background:#d03b3b;"></span>Expired</span>
     <span><span class="dot" style="background:#888780;"></span>Terminated</span>
   </div>
-
-  <div class="section-title">Live brands by city</div>
-  <div id="live-by-city" style="margin-bottom:2rem;"></div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
     <div class="section-title" style="margin:0;">Watchlist — expiring soon</div>

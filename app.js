@@ -137,11 +137,6 @@ async function loadData() {
   LIVE_COUNT = statusCounts['LIVE'] || 0;
   ATTENTION_COUNT = attention;
 
-  document.getElementById('card-total').textContent = TOTAL_ROWS.toLocaleString();
-  document.getElementById('card-live').textContent = LIVE_COUNT.toLocaleString();
-  document.getElementById('card-expiring').textContent = WATCHLIST.length.toLocaleString();
-  document.getElementById('card-attention').textContent = ATTENTION_COUNT.toLocaleString();
-
   setStatus('Live · last loaded ' + new Date().toLocaleTimeString());
   drawChart();
   renderLiveByCity();
