@@ -209,7 +209,8 @@ function statusBadge(status, bucket) {
 }
 
 function setupWatchlist() {
-  const citySet = [...new Set(WATCHLIST.map(r => r[1]))].sort();
+  const hiddenCities = ['BW-VAS', 'Unspecified'];
+  const citySet = [...new Set(WATCHLIST.map(r => r[1]))].filter(c => !hiddenCities.includes(c)).sort();
   const citySelect = document.getElementById('wl-city');
   citySelect.innerHTML = '<option value="">All cities</option>';
   citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
