@@ -144,7 +144,26 @@ async function loadData() {
 
   setStatus('Live · last loaded ' + new Date().toLocaleTimeString());
   drawChart();
+  renderLiveByCity();
   setupWatchlist();
+}
+
+function renderLiveByCity() {
+  const rows = Object.keys(CITY_STATUS)
+    .map(city => [city, CITY_STATUS[city].LIVE || 0])
+    .filter(r => r[1] > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const maxCount = Math.max(1, ...rows.map(r => r[1]));
+  const el = document.getElementById('live-by-city');
+  el.innerHTML = rows.map(([city, count]) => (
+    '<div class="row">' +
+      '<div style="width:110px;font-size:14px;font-weight:600;flex-shrink:0;">' + city + '</div>' +
+      '<div style="flex:1;background:var(--surface-2);border-radius:4px;height:10px;overflow:hidden;">' +
+        '<div style="width:' + Math.round((count / maxCount) * 100) + '%;background:#0ca30c;height:100%;"></div>' +
+      '</div>' +
+      '<div style="width:44px;text-align:right;font-size:14px;font-weight:600;color:var(--success);">' + count + '</div>' +
+    '</div>'
+  )).join('') || '<div style="padding:8px 0;color:var(--text-muted);font-size:13px;">No live brands found.</div>';
 }
 
 function drawChart() {
