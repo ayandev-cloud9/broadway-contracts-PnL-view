@@ -869,21 +869,15 @@ function renderSummary() {
   if (kpiCatEl) kpiCatEl.textContent = topCategory || '—';
   if (kpiCatValEl) kpiCatValEl.textContent = topCategory ? rupee(categoryTotals[topCategory].cm) + ' this month' : '';
 
-  // chart: revenue by city (horizontal bars, highest first — matches the category chart's layout)
+  // chart: revenue by city — one box per city, highest first
   if (cityChartEl) {
     const sortedCities = [...cities].sort((a, b) => cityTotals[b].cm - cityTotals[a].cm);
-    const maxCity = Math.max(1, ...sortedCities.map(c => cityTotals[c].cm));
     cityChartEl.innerHTML = sortedCities.map(city => {
       const i = cities.indexOf(city);
       const col = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
-      const pct = Math.max(2, Math.round((cityTotals[city].cm / maxCity) * 100));
-      return '<div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:3px;">' +
-          '<span style="font-weight:600;color:var(--text);">' + city + '</span><span>' + rupee(cityTotals[city].cm) + '</span>' +
-        '</div>' +
-        '<div style="background:var(--surface-2);border-radius:5px;height:8px;">' +
-          '<div style="background:' + col.bg + ';width:' + pct + '%;height:8px;border-radius:5px;"></div>' +
-        '</div>' +
+      return '<div class="card" style="border-left:4px solid ' + col.bg + ';">' +
+        '<div class="label">' + city + '</div>' +
+        '<div class="value">' + rupee(cityTotals[city].cm) + '</div>' +
       '</div>';
     }).join('');
   }
