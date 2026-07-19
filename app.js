@@ -676,12 +676,13 @@ updateCdSortIndicators();
 
 // --- Revenue tab (Brand, City, Category, Sub category, KAM, Agreement Type, Monthly Rental, Commission%) ---
 function setupRevenue() {
-  const categorySet = [...new Set(ALL_CONTRACTS.map(r => r.category || 'Uncategorized'))].sort();
+  const activeContracts = ALL_CONTRACTS.filter(r => r.bucket !== 'Expired');
+  const categorySet = [...new Set(activeContracts.map(r => r.category || 'Uncategorized'))].sort();
   const categorySelect = document.getElementById('rv-category');
   categorySelect.innerHTML = '<option value="">All categories</option>';
   categorySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; categorySelect.appendChild(o); });
 
-  const citySet = [...new Set(ALL_CONTRACTS.map(r => r.city))].filter(c => !HIDDEN_CITIES.includes(c)).sort();
+  const citySet = [...new Set(activeContracts.map(r => r.city))].filter(c => !HIDDEN_CITIES.includes(c)).sort();
   const citySelect = document.getElementById('rv-city');
   citySelect.innerHTML = '<option value="">All cities</option>';
   citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
@@ -695,6 +696,7 @@ function renderRevenue() {
   const categoryFilter = document.getElementById('rv-category').value;
   const cityFilter = document.getElementById('rv-city').value;
   const filtered = ALL_CONTRACTS.filter(r => {
+    if (r.bucket === 'Expired') return false;
     const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.city.toLowerCase().includes(q) || r.kam.toLowerCase().includes(q);
     const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
     const matchesCity = !cityFilter || r.city === cityFilter;
