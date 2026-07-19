@@ -78,11 +78,12 @@
   #details-table td.money, #revenue-table td.money{color:var(--success);font-weight:700;}
   #details-table td.muted, #revenue-table td.muted{color:var(--text-muted);}
   #details-table td.brand-cell, #revenue-table td.brand-cell{font-weight:700;color:var(--accent);}
-  th.sortable{cursor:pointer;user-select:none;}
+  .sortable{cursor:pointer;user-select:none;}
   th.sortable:hover{background:var(--accent-2);color:var(--accent);}
-  th.sortable::after{content:'';display:inline-block;width:10px;}
-  th.sortable.sort-asc::after{content:'\25B2';font-size:9px;margin-left:4px;}
-  th.sortable.sort-desc::after{content:'\25BC';font-size:9px;margin-left:4px;}
+  .row .sortable:hover{color:var(--accent);}
+  .sortable::after{content:'';display:inline-block;width:10px;}
+  .sortable.sort-asc::after{content:'\25B2';font-size:9px;margin-left:4px;}
+  .sortable.sort-desc::after{content:'\25BC';font-size:9px;margin-left:4px;}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--accent);
     background:var(--surface);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;
@@ -115,12 +116,12 @@
     <table id="status-table" style="width:100%;border-collapse:collapse;margin-bottom:2rem;font-size:13px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <thead>
         <tr style="border-bottom:1px solid var(--border);">
-          <th style="text-align:left;padding:8px 6px;color:var(--text-2);font-weight:600;">City</th>
-          <th style="text-align:right;padding:8px 6px;color:var(--success);font-weight:600;">Live</th>
-          <th style="text-align:right;padding:8px 6px;color:var(--warning);font-weight:600;">In progress</th>
-          <th style="text-align:right;padding:8px 6px;color:var(--danger);font-weight:600;">Expired</th>
-          <th style="text-align:right;padding:8px 6px;color:var(--text-2);font-weight:600;">Terminated</th>
-          <th style="text-align:right;padding:8px 6px;color:var(--text);font-weight:600;">Total</th>
+          <th class="sortable" data-key="city" data-type="str" style="text-align:left;padding:8px 6px;color:var(--text-2);font-weight:600;">City</th>
+          <th class="sortable" data-key="live" data-type="num" style="text-align:right;padding:8px 6px;color:var(--success);font-weight:600;">Live</th>
+          <th class="sortable" data-key="prog" data-type="num" style="text-align:right;padding:8px 6px;color:var(--warning);font-weight:600;">In progress</th>
+          <th class="sortable" data-key="exp" data-type="num" style="text-align:right;padding:8px 6px;color:var(--danger);font-weight:600;">Expired</th>
+          <th class="sortable" data-key="term" data-type="num" style="text-align:right;padding:8px 6px;color:var(--text-2);font-weight:600;">Terminated</th>
+          <th class="sortable" data-key="total" data-type="num" style="text-align:right;padding:8px 6px;color:var(--text);font-weight:600;">Total</th>
         </tr>
       </thead>
       <tbody id="status-table-body"></tbody>
@@ -139,9 +140,9 @@
     </div>
 
     <div class="row" style="border-bottom:1px solid var(--border);padding:6px 0;">
-      <div class="left-col"><div class="name" style="font-size:12px;color:var(--text-2);font-weight:600;">Brand name</div></div>
-      <div style="width:150px;text-align:left;font-size:12px;color:var(--text-2);font-weight:600;">Contract status</div>
-      <div class="date" style="font-size:12px;color:var(--text-2);font-weight:600;">End date</div>
+      <div class="left-col"><div class="name sortable" data-key="0" data-type="str" style="font-size:12px;color:var(--text-2);font-weight:600;">Brand name</div></div>
+      <div class="sortable" data-key="6" data-type="str" style="width:150px;text-align:left;font-size:12px;color:var(--text-2);font-weight:600;">Contract status</div>
+      <div class="date sortable" data-key="5" data-type="num" style="font-size:12px;color:var(--text-2);font-weight:600;">End date</div>
     </div>
     <div id="wl-list"></div>
 

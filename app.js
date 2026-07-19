@@ -91,6 +91,10 @@ let LIVE_COUNT = 0;
 let ATTENTION_COUNT = 0;
 let page = 0;
 const perPage = 15;
+let wlSortKey = '5';
+let wlSortDir = 'asc';
+let stSortKey = 'total';
+let stSortDir = 'desc';
 let cdPage = 0;
 const cdPerPage = 20;
 let cdSortKey = 'brand';
@@ -256,14 +260,6 @@ async function loadData() {
     watchlist.push([rec.brand_name, city, rec.vendor_name || '', status, rec.end_date || '—', delta, statusBucket(status), category]);
   });
 
-  // soonest-expiring first; entries with no end date sort last
-  watchlist.sort((a, b) => {
-    if (a[5] === null && b[5] === null) return 0;
-    if (a[5] === null) return 1;
-    if (b[5] === null) return -1;
-    return a[5] - b[5];
-  });
-
   // full contract detail rows, one per unique brand+city (latest contract), for the "Contract details" tab
   const allContracts = latestRows.map(rec => {
     const status = rec.status || 'UNKNOWN';
@@ -367,7 +363,7 @@ function renderStatusTable() {
     const exp = s.EXPIRED || 0;
     const term = s.TERMINATED || 0;
     return { city, live, prog, exp, term, total: live + prog + exp + term };
-  }).sort((a, b) => b.total - a.total);
+  }).sort((a, b) => compareRows(a, b, stSortKey, stSortDir));
 
   const grand = rows.reduce((acc, r) => {
     acc.live += r.live; acc.prog += r.prog; acc.exp += r.exp; acc.term += r.term; acc.total += r.total;
@@ -490,7 +486,7 @@ function renderWatchlist() {
     const matchesStatus = !statusFilter || r[6] === statusFilter;
     const matchesCategory = !categoryFilter || (r[7] || 'Uncategorized') === categoryFilter;
     return matchesQ && matchesCity && matchesStatus && matchesCategory;
-  });
+  }).sort((a, b) => compareRows(a, b, wlSortKey, wlSortDir));
   document.getElementById('wl-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / perPage) - 1);
   if (page > maxPage) page = maxPage;
@@ -516,6 +512,51 @@ document.getElementById('wl-category').addEventListener('change', () => { page =
 document.getElementById('wl-prev').addEventListener('click', () => { if (page > 0) { page--; renderWatchlist(); } });
 document.getElementById('wl-next').addEventListener('click', () => { page++; renderWatchlist(); });
 document.getElementById('reload-btn').addEventListener('click', loadData);
+
+function updateWlSortIndicators() {
+  document.querySelectorAll('.row .sortable').forEach(el => {
+    el.classList.remove('sort-asc', 'sort-desc');
+    if (el.dataset.key === wlSortKey) el.classList.add(wlSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+document.querySelectorAll('.row .sortable').forEach(el => {
+  el.addEventListener('click', () => {
+    const key = el.dataset.key;
+    if (wlSortKey === key) {
+      wlSortDir = wlSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      wlSortKey = key;
+      wlSortDir = el.dataset.type === 'str' ? 'asc' : 'desc';
+    }
+    updateWlSortIndicators();
+    page = 0;
+    renderWatchlist();
+  });
+});
+updateWlSortIndicators();
+
+function updateStSortIndicators() {
+  document.querySelectorAll('#status-table th.sortable').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.key === stSortKey) th.classList.add(stSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+document.querySelectorAll('#status-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (stSortKey === key) {
+      stSortDir = stSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      stSortKey = key;
+      stSortDir = th.dataset.type === 'str' ? 'asc' : 'desc';
+    }
+    updateStSortIndicators();
+    renderStatusTable();
+  });
+});
+updateStSortIndicators();
 
 // --- Contract details tab ---
 function setupDetails() {
