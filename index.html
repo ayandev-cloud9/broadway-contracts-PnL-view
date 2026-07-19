@@ -29,6 +29,7 @@
     line-height:1.5;
   }
   .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+  .wrap.wide{max-width:1280px;}
   h1{font-size:20px;font-weight:600;margin:0 0 4px;}
   .sub{font-size:13px;color:var(--text-2);margin:0 0 8px;}
   .status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
@@ -69,12 +70,17 @@
   .tab-btn:hover{background:none;color:var(--text);}
   .tab-btn.active{color:var(--text);border-bottom-color:var(--accent);}
   .details-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
-  #details-table{border-collapse:collapse;font-size:12px;min-width:1500px;width:100%;}
+  #details-table{border-collapse:collapse;font-size:12.5px;min-width:1150px;width:100%;}
   #details-table th{
-    text-align:left;padding:8px 10px;color:var(--text-2);font-weight:600;white-space:nowrap;
-    border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);
+    text-align:left;padding:10px 12px;color:var(--accent);font-weight:700;white-space:nowrap;
+    border-bottom:2px solid var(--accent);position:sticky;top:0;background:var(--surface-2);
   }
-  #details-table td{padding:8px 10px;white-space:nowrap;}
+  #details-table td{padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--border);}
+  #details-table tbody tr:nth-child(even){background:var(--surface-2);}
+  #details-table tbody tr:hover{background:var(--warning-bg);}
+  #details-table td.money{color:var(--success);font-weight:700;}
+  #details-table td.muted{color:var(--text-muted);}
+  #details-table td.brand-cell{font-weight:700;color:var(--text);}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);
     background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;
@@ -85,7 +91,7 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="page-wrap">
   <h1>Broadway contracts — brand x city view</h1>
   <p class="sub">Live from your Google Sheet: unique brand + city pairs, status by city, and everything expiring soon.</p>
   <div class="status-row">
@@ -158,23 +164,18 @@
       <table id="details-table">
         <thead>
           <tr>
-            <th>Contract ID</th>
             <th>Brand</th>
             <th>City</th>
-            <th>Vendor</th>
+            <th>Category</th>
+            <th>Sub category</th>
             <th>KAM</th>
             <th>Contract Start Date</th>
-            <th>Contract End Date</th>
             <th>Contract status</th>
-            <th>Live Date</th>
-            <th>LOB</th>
+            <th>Contract End Date</th>
             <th>Agreement Type</th>
-            <th>Commission%</th>
             <th>Commission% applicable on</th>
-            <th>Locked in period</th>
-            <th>Notice Period</th>
-            <th>FNF Period</th>
-            <th>Expiry Flag</th>
+            <th>Monthly Rental</th>
+            <th>Commission%</th>
           </tr>
         </thead>
         <tbody id="details-table-body"></tbody>
@@ -200,6 +201,7 @@
       btn.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p => { p.style.display = 'none'; });
       document.getElementById('tab-' + btn.dataset.tab).style.display = '';
+      document.getElementById('page-wrap').classList.toggle('wide', btn.dataset.tab === 'details');
     });
   });
 </script>

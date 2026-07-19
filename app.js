@@ -62,6 +62,14 @@ function computeExpiryFlag(status, endDt, today) {
   return 'Active';
 }
 
+// Monthly Rental = fixed agreement value spread evenly over the contract duration (in months)
+function computeMonthlyRental(agreementValue, startDt, endDt) {
+  const v = parseFloat(agreementValue);
+  if (!v || !startDt || !endDt || endDt <= startDt) return null;
+  const months = Math.max(1, Math.round(daysBetween(startDt, endDt) / 30.44));
+  return Math.round(v / months);
+}
+
 // --- state ---
 let WATCHLIST = [];
 let CITY_STATUS = {};
@@ -154,12 +162,15 @@ async function loadData() {
   // full contract detail rows, one per unique brand+city (latest contract), for the "Contract details" tab
   const allContracts = latestRows.map(rec => {
     const status = rec.status || 'UNKNOWN';
+    const startDt = parseDate(rec.start_date);
     const endDt = parseDate(rec.end_date);
     return {
       id: rec.contract_id || '',
       brand: rec.brand_name || '',
       city: rec.store_name || 'Unspecified',
       vendor: rec.vendor_name || '',
+      category: '',      // not present in the source sheet
+      subCategory: '',   // not present in the source sheet
       kam: rec.bw_spoc_name || '',
       start: rec.start_date || '',
       end: rec.end_date || '',
@@ -170,6 +181,7 @@ async function loadData() {
       agreementType: rec.agrmnt_model || '',
       commission: rec.margin_percnt || '',
       commissionOn: rec.margin_calculation_on || '',
+      monthlyRental: computeMonthlyRental(rec.agreement_value, startDt, endDt),
       lockin: rec.lockin_period || '',
       notice: rec.exit_notice_period || '',
       fnf: rec.exit_settlement_period || '',
@@ -339,8 +351,8 @@ function setupDetails() {
   renderDetails();
 }
 
-function cell(val) {
-  return '<td>' + (val || '—') + '</td>';
+function cell(val, cls) {
+  return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (val || val === 0 ? val : '—') + '</td>';
 }
 
 function renderDetails() {
@@ -361,12 +373,13 @@ function renderDetails() {
   const tbody = document.getElementById('details-table-body');
   tbody.innerHTML = slice.map(r => (
     '<tr>' +
-      cell(r.id) + cell(r.brand) + cell(r.city) + cell(r.vendor) + cell(r.kam) +
-      cell(r.start) + cell(r.end) + cell(r.status) + cell(r.liveDate) + cell(r.lob) +
-      cell(r.agreementType) + cell(r.commission) + cell(r.commissionOn) +
-      cell(r.lockin) + cell(r.notice) + cell(r.fnf) + cell(r.expiryFlag) +
+      cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category, 'muted') + cell(r.subCategory, 'muted') + cell(r.kam) +
+      cell(r.start) + '<td>' + statusBadge(r.status, r.bucket) + '</td>' + cell(r.end) +
+      cell(r.agreementType) + cell(r.commissionOn) +
+      cell(r.monthlyRental !== null ? '₹' + r.monthlyRental.toLocaleString('en-IN') : null, 'money') +
+      cell(r.commission ? r.commission + '%' : null, 'money') +
     '</tr>'
-  )).join('') || '<tr><td colspan="17" style="color:var(--text-muted);">No matches.</td></tr>';
+  )).join('') || '<tr><td colspan="12" style="color:var(--text-muted);">No matches.</td></tr>';
   document.getElementById('cd-page').textContent = 'Page ' + (cdPage + 1) + ' of ' + (maxPage + 1);
 }
 
