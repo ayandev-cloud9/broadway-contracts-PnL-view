@@ -30,7 +30,9 @@
   }
   .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem;}
   h1{font-size:20px;font-weight:600;margin:0 0 4px;}
-  .sub{font-size:13px;color:var(--text-2);margin:0 0 1.75rem;}
+  .sub{font-size:13px;color:var(--text-2);margin:0 0 8px;}
+  .status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+  #status-msg{font-size:12px;color:var(--text-2);}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:2rem;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;}
   .card .label{font-size:12px;color:var(--text-2);margin-bottom:4px;}
@@ -69,18 +71,22 @@
 <body>
 <div class="wrap">
   <h1>Broadway contracts — brand x city view</h1>
-  <p class="sub">1,537 unique brand + city pairs, live status by city, and everything expiring in the next 60 days.</p>
+  <p class="sub">Live from your Google Sheet: unique brand + city pairs, status by city, and everything expiring soon.</p>
+  <div class="status-row">
+    <div id="status-msg">Loading…</div>
+    <button id="reload-btn">Reload</button>
+  </div>
 
   <div class="cards">
-    <div class="card"><div class="label">Brand x city pairs</div><div class="value">1,537</div></div>
-    <div class="card"><div class="label">Live now</div><div class="value" style="color:var(--success);">1,047</div></div>
-    <div class="card"><div class="label">Expiring &le;60d</div><div class="value" style="color:var(--warning);">128</div></div>
-    <div class="card"><div class="label">Needs attention</div><div class="value" style="color:var(--danger);">263</div></div>
+    <div class="card"><div class="label">Brand x city pairs</div><div class="value" id="card-total">—</div></div>
+    <div class="card"><div class="label">Live now</div><div class="value" id="card-live" style="color:var(--success);">—</div></div>
+    <div class="card"><div class="label">Expiring soon</div><div class="value" id="card-expiring" style="color:var(--warning);">—</div></div>
+    <div class="card"><div class="label">Needs attention</div><div class="value" id="card-attention" style="color:var(--danger);">—</div></div>
   </div>
 
   <div class="section-title">Status by city</div>
   <div class="chart-box">
-    <canvas id="cityChart" role="img" aria-label="Stacked bar chart of contract status by city">Delhi, Hyderabad, Mumbai and Pune broken down by live, in-progress, expired and terminated contract counts.</canvas>
+    <canvas id="cityChart" role="img" aria-label="Stacked bar chart of contract status by city">Cities broken down by live, in-progress, expired and terminated contract counts.</canvas>
   </div>
   <div class="legend">
     <span><span class="dot" style="background:#0ca30c;"></span>Live</span>
@@ -90,8 +96,8 @@
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div class="section-title" style="margin:0;">Watchlist — expiring within 60 days</div>
-    <div class="pager-label" id="wl-count">128 contracts</div>
+    <div class="section-title" style="margin:0;">Watchlist — expiring soon</div>
+    <div class="pager-label" id="wl-count">— contracts</div>
   </div>
 
   <div class="toolbar">
@@ -107,92 +113,11 @@
     <button id="wl-next">Next</button>
   </div>
 
-  <footer>Source: Contract Dump — Raw tab, Broadway "Copy of P&amp;L" sheet. Snapshot as of build time — re-deploy to refresh.</footer>
+  <footer>Source: your Google Sheet's "Contract Dump - Raw" tab, fetched live via a published CSV link. Click Reload to re-fetch.</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="data.js"></script>
-<script>
-const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
-const tickColor = isDark ? '#b4b2a9' : '#5f5e5a';
-
-const inProgress = s => (s.PENDING||0)+(s.APPROVED_BY_VENDOR||0)+(s.VENDOR_REVIEW||0)+(s.APPROVED_BY_ADMIN||0);
-const cities = Object.keys(CITY_STATUS);
-const liveData = cities.map(c => CITY_STATUS[c].LIVE||0);
-const progData = cities.map(c => inProgress(CITY_STATUS[c]));
-const expData = cities.map(c => CITY_STATUS[c].EXPIRED||0);
-const termData = cities.map(c => CITY_STATUS[c].TERMINATED||0);
-
-new Chart(document.getElementById('cityChart'), {
-  type: 'bar',
-  data: {
-    labels: cities,
-    datasets: [
-      { label: 'Live', data: liveData, backgroundColor: '#0ca30c' },
-      { label: 'In progress', data: progData, backgroundColor: '#fab219' },
-      { label: 'Expired', data: expData, backgroundColor: '#d03b3b' },
-      { label: 'Terminated', data: termData, backgroundColor: '#888780' }
-    ]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor } },
-      y: { stacked: true, grid: { display: false }, ticks: { color: tickColor } }
-    },
-    plugins: { legend: { display: false } }
-  }
-});
-
-const citySet = [...new Set(WATCHLIST.map(r => r[1]))].sort();
-const citySelect = document.getElementById('wl-city');
-citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
-
-let page = 0;
-const perPage = 15;
-
-function statusBadge(s) {
-  return s === 'LIVE'
-    ? '<span class="badge live">Live</span>'
-    : '<span class="badge pending">Pending</span>';
-}
-
-function render() {
-  const q = document.getElementById('wl-search').value.toLowerCase();
-  const cityFilter = citySelect.value;
-  const filtered = WATCHLIST.filter(r => {
-    const matchesQ = !q || r[0].toLowerCase().includes(q) || r[2].toLowerCase().includes(q) || r[1].toLowerCase().includes(q);
-    const matchesCity = !cityFilter || r[1] === cityFilter;
-    return matchesQ && matchesCity;
-  });
-  document.getElementById('wl-count').textContent = filtered.length + ' contract' + (filtered.length===1?'':'s');
-  const maxPage = Math.max(0, Math.ceil(filtered.length/perPage)-1);
-  if (page > maxPage) page = maxPage;
-  const slice = filtered.slice(page*perPage, page*perPage+perPage);
-  const list = document.getElementById('wl-list');
-  list.innerHTML = slice.map(r => (
-    '<div class="row">' +
-      '<div class="left-col">' +
-        '<div class="name">'+r[0]+'</div>' +
-        '<div class="meta">'+r[2]+' &middot; '+r[1]+'</div>' +
-      '</div>' +
-      statusBadge(r[3]) +
-      '<div class="date">'+r[4]+'</div>' +
-      '<div class="days">'+r[5]+'d left</div>' +
-    '</div>'
-  )).join('') || '<div style="padding:16px 0;color:var(--text-muted);font-size:13px;">No matches.</div>';
-  document.getElementById('wl-page').textContent = 'Page ' + (page+1) + ' of ' + (maxPage+1);
-}
-
-document.getElementById('wl-search').addEventListener('input', () => { page = 0; render(); });
-citySelect.addEventListener('change', () => { page = 0; render(); });
-document.getElementById('wl-prev').addEventListener('click', () => { if (page>0) { page--; render(); } });
-document.getElementById('wl-next').addEventListener('click', () => { page++; render(); });
-
-render();
-</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
