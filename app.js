@@ -370,6 +370,11 @@ function setupWatchlist() {
   statusSelect.innerHTML = '<option value="">All Status</option>';
   statusSet.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; statusSelect.appendChild(o); });
 
+  const categorySet = [...new Set(WATCHLIST.map(r => r[7] || 'Uncategorized'))].sort();
+  const categorySelect = document.getElementById('wl-category');
+  categorySelect.innerHTML = '<option value="">All categories</option>';
+  categorySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; categorySelect.appendChild(o); });
+
   page = 0;
   renderWatchlist();
 }
@@ -378,11 +383,13 @@ function renderWatchlist() {
   const q = document.getElementById('wl-search').value.toLowerCase();
   const cityFilter = document.getElementById('wl-city').value;
   const statusFilter = document.getElementById('wl-status').value;
+  const categoryFilter = document.getElementById('wl-category').value;
   const filtered = WATCHLIST.filter(r => {
     const matchesQ = !q || r[0].toLowerCase().includes(q) || r[2].toLowerCase().includes(q) || r[1].toLowerCase().includes(q);
     const matchesCity = !cityFilter || r[1] === cityFilter;
     const matchesStatus = !statusFilter || r[6] === statusFilter;
-    return matchesQ && matchesCity && matchesStatus;
+    const matchesCategory = !categoryFilter || (r[7] || 'Uncategorized') === categoryFilter;
+    return matchesQ && matchesCity && matchesStatus && matchesCategory;
   });
   document.getElementById('wl-count').textContent = filtered.length + ' contract' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / perPage) - 1);
@@ -405,6 +412,7 @@ function renderWatchlist() {
 document.getElementById('wl-search').addEventListener('input', () => { page = 0; renderWatchlist(); });
 document.getElementById('wl-city').addEventListener('change', () => { page = 0; renderWatchlist(); });
 document.getElementById('wl-status').addEventListener('change', () => { page = 0; renderWatchlist(); });
+document.getElementById('wl-category').addEventListener('change', () => { page = 0; renderWatchlist(); });
 document.getElementById('wl-prev').addEventListener('click', () => { if (page > 0) { page--; renderWatchlist(); } });
 document.getElementById('wl-next').addEventListener('click', () => { page++; renderWatchlist(); });
 document.getElementById('reload-btn').addEventListener('click', loadData);
