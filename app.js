@@ -281,6 +281,12 @@ async function loadData() {
     const mrpLM = prevMonth ? Math.round(prevMonth.lmMrp) : null;
     const mrpL2M = prevMonth ? Math.round(prevMonth.l2mMrp) : null;
 
+    // commission is calculated against MRP when "applicable on" says MRP, otherwise against Net Sales (Customer Selling Price)
+    const onMrp = (rec.margin_calculation_on || '').toLowerCase().indexOf('mrp') !== -1;
+    const baseCM = onMrp ? mrpCM : netSalesCM;
+    const baseLM = onMrp ? mrpLM : netSalesLM;
+    const baseL2M = onMrp ? mrpL2M : netSalesL2M;
+
     return {
       id: rec.contract_id || '',
       brand: rec.brand_name || '',
@@ -315,12 +321,12 @@ async function loadData() {
       mrpLM: mrpLM,
       mrpL2M: mrpL2M,
       // Commission = Net Sales x Commission%; Revenue earned = same figure (flagged assumption)
-      commissionCM: netSalesCM != null ? Math.round(netSalesCM * commissionPct / 100) : null,
-      commissionLM: netSalesLM != null ? Math.round(netSalesLM * commissionPct / 100) : null,
-      commissionL2M: netSalesL2M != null ? Math.round(netSalesL2M * commissionPct / 100) : null,
-      revenueCM: netSalesCM != null ? Math.round(netSalesCM * commissionPct / 100) : null,
-      revenueLM: netSalesLM != null ? Math.round(netSalesLM * commissionPct / 100) : null,
-      revenueL2M: netSalesL2M != null ? Math.round(netSalesL2M * commissionPct / 100) : null
+      commissionCM: baseCM != null ? Math.round(baseCM * commissionPct / 100) : null,
+      commissionLM: baseLM != null ? Math.round(baseLM * commissionPct / 100) : null,
+      commissionL2M: baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null,
+      revenueCM: baseCM != null ? Math.round(baseCM * commissionPct / 100) : null,
+      revenueLM: baseLM != null ? Math.round(baseLM * commissionPct / 100) : null,
+      revenueL2M: baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null
     };
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
 
