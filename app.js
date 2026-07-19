@@ -237,7 +237,6 @@ async function loadData() {
 
   setStatus('Live · last loaded ' + new Date().toLocaleTimeString());
   renderStatusTable();
-  renderCategoryTable();
   renderLiveByCity();
   setupWatchlist();
   setupDetails();
