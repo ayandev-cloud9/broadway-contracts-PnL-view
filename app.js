@@ -162,8 +162,9 @@ function renderLiveByCity() {
 }
 
 function renderStatusTable() {
+  const hiddenCities = ['BW-VAS', 'Unspecified'];
   const inProgress = s => (s.PENDING || 0) + (s.APPROVED_BY_VENDOR || 0) + (s.VENDOR_REVIEW || 0) + (s.APPROVED_BY_ADMIN || 0);
-  const rows = Object.keys(CITY_STATUS).map(city => {
+  const rows = Object.keys(CITY_STATUS).filter(city => !hiddenCities.includes(city)).map(city => {
     const s = CITY_STATUS[city];
     const live = s.LIVE || 0;
     const prog = inProgress(s);
@@ -171,6 +172,11 @@ function renderStatusTable() {
     const term = s.TERMINATED || 0;
     return { city, live, prog, exp, term, total: live + prog + exp + term };
   }).sort((a, b) => b.total - a.total);
+
+  const grand = rows.reduce((acc, r) => {
+    acc.live += r.live; acc.prog += r.prog; acc.exp += r.exp; acc.term += r.term; acc.total += r.total;
+    return acc;
+  }, { live: 0, prog: 0, exp: 0, term: 0, total: 0 });
 
   const tbody = document.getElementById('status-table-body');
   tbody.innerHTML = rows.map(r => (
@@ -182,7 +188,16 @@ function renderStatusTable() {
       '<td style="padding:8px 6px;text-align:right;color:var(--text-2);">' + r.term + '</td>' +
       '<td style="padding:8px 6px;text-align:right;font-weight:600;">' + r.total + '</td>' +
     '</tr>'
-  )).join('');
+  )).join('') + (
+    '<tr style="border-top:2px solid var(--border);">' +
+      '<td style="padding:8px 6px;font-weight:700;">Total</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--success);">' + grand.live + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--warning);">' + grand.prog + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--danger);">' + grand.exp + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text-2);">' + grand.term + '</td>' +
+      '<td style="padding:8px 6px;text-align:right;font-weight:700;">' + grand.total + '</td>' +
+    '</tr>'
+  );
 }
 
 // groups the raw sheet status values into the 4 buckets shown in the dropdown
