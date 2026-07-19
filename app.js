@@ -615,8 +615,8 @@ function renderRevenue() {
       cell(r.brand, 'brand-cell') + cell(r.city) + cell(r.category) + cell(r.subCategory) + cell(r.kam) + cell(r.agreementType) +
       cell(r.monthlyRental !== null ? rupee(r.monthlyRental) : null, 'money') +
       cell(r.actualCommission !== '' ? r.actualCommission + '%' : null, 'money') +
-      cell(rupee(r.netSalesCM)) + cell(rupee(r.netSalesLM)) + cell(rupee(r.netSalesL2M)) +
       cell(rupee(r.mrpCM)) + cell(rupee(r.mrpLM)) + cell(rupee(r.mrpL2M)) +
+      cell(rupee(r.netSalesCM)) + cell(rupee(r.netSalesLM)) + cell(rupee(r.netSalesL2M)) +
       cell(rupee(r.commissionCM), 'money') + cell(rupee(r.commissionLM), 'money') + cell(rupee(r.commissionL2M), 'money') +
       cell(rupee(r.revenueCM), 'money') + cell(rupee(r.revenueLM), 'money') + cell(rupee(r.revenueL2M), 'money') +
     '</tr>'
