@@ -82,6 +82,8 @@ let page = 0;
 const perPage = 15;
 let cdPage = 0;
 const cdPerPage = 20;
+// junk/placeholder city labels, excluded from city + category rollups (still visible under "All cities")
+const HIDDEN_CITIES = ['BW-VAS', 'Unspecified'];
 
 function setStatus(msg, isError) {
   const el = document.getElementById('status-msg');
@@ -164,13 +166,20 @@ async function loadData() {
     const status = rec.status || 'UNKNOWN';
     statusCounts[status] = (statusCounts[status] || 0) + 1;
     const city = rec.store_name || 'Unspecified';
-    cityStatus[city] = cityStatus[city] || {};
-    cityStatus[city][status] = (cityStatus[city][status] || 0) + 1;
+    const isHiddenCity = HIDDEN_CITIES.includes(city);
+    if (!isHiddenCity) {
+      cityStatus[city] = cityStatus[city] || {};
+      cityStatus[city][status] = (cityStatus[city][status] || 0) + 1;
+    }
 
     const mapped = brandMap[(rec.brand_name || '').trim().toLowerCase()] || {};
     const category = mapped.category || 'Uncategorized';
-    categoryStatus[category] = categoryStatus[category] || {};
-    categoryStatus[category][status] = (categoryStatus[category][status] || 0) + 1;
+    // keep this in sync with the city table above: same contracts excluded from both,
+    // so the two dashboard summaries always add up to the same grand total
+    if (!isHiddenCity) {
+      categoryStatus[category] = categoryStatus[category] || {};
+      categoryStatus[category][status] = (categoryStatus[category][status] || 0) + 1;
+    }
 
     if (status === 'EXPIRED' || status === 'TERMINATED' || status === 'VENDOR_REVIEW') attention++;
 
@@ -250,9 +259,8 @@ function renderLiveByCity() {
 }
 
 function renderStatusTable() {
-  const hiddenCities = ['BW-VAS', 'Unspecified'];
   const inProgress = s => (s.PENDING || 0) + (s.APPROVED_BY_VENDOR || 0) + (s.VENDOR_REVIEW || 0) + (s.APPROVED_BY_ADMIN || 0);
-  const rows = Object.keys(CITY_STATUS).filter(city => !hiddenCities.includes(city)).map(city => {
+  const rows = Object.keys(CITY_STATUS).map(city => {
     const s = CITY_STATUS[city];
     const live = s.LIVE || 0;
     const prog = inProgress(s);
@@ -350,8 +358,7 @@ function statusBadge(status, bucket) {
 }
 
 function setupWatchlist() {
-  const hiddenCities = ['BW-VAS', 'Unspecified'];
-  const citySet = [...new Set(WATCHLIST.map(r => r[1]))].filter(c => !hiddenCities.includes(c)).sort();
+  const citySet = [...new Set(WATCHLIST.map(r => r[1]))].filter(c => !HIDDEN_CITIES.includes(c)).sort();
   const citySelect = document.getElementById('wl-city');
   citySelect.innerHTML = '<option value="">All cities</option>';
   citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
@@ -404,8 +411,7 @@ document.getElementById('reload-btn').addEventListener('click', loadData);
 
 // --- Contract details tab ---
 function setupDetails() {
-  const hiddenCities = ['BW-VAS', 'Unspecified'];
-  const citySet = [...new Set(ALL_CONTRACTS.map(r => r.city))].filter(c => !hiddenCities.includes(c)).sort();
+  const citySet = [...new Set(ALL_CONTRACTS.map(r => r.city))].filter(c => !HIDDEN_CITIES.includes(c)).sort();
   const citySelect = document.getElementById('cd-city');
   citySelect.innerHTML = '<option value="">All cities</option>';
   citySet.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
