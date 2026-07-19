@@ -307,6 +307,12 @@ async function loadData() {
     const commissionLM = baseLM != null ? Math.round(baseLM * commissionPct / 100) : null;
     const commissionL2M = baseL2M != null ? Math.round(baseL2M * commissionPct / 100) : null;
 
+    // an expired contract still counts for LM/L2M revenue (it was active then), but earns
+    // nothing this month — keep it on the Revenue tab only if it expired within the last ~2
+    // months, and always show 0 for its current-month (CM) revenue
+    const daysSinceEnd = endDt ? daysBetween(endDt, today) : null;
+    const recentlyExpired = status === 'EXPIRED' && daysSinceEnd !== null && daysSinceEnd <= 60;
+
     return {
       id: rec.contract_id || '',
       brand: rec.brand_name || '',
@@ -345,9 +351,11 @@ async function loadData() {
       commissionLM: commissionLM,
       commissionL2M: commissionL2M,
       // Revenue depends on agreement type: FIXED=rental, MARGIN=commission, AND=rental+commission, OR=higher of the two
-      revenueCM: computeRevenue(rec.agrmnt_model, monthlyRental, commissionCM),
+      // expired contracts show 0 for the current month (no longer earning), but keep their LM/L2M revenue
+      revenueCM: status === 'EXPIRED' ? 0 : computeRevenue(rec.agrmnt_model, monthlyRental, commissionCM),
       revenueLM: computeRevenue(rec.agrmnt_model, monthlyRental, commissionLM),
-      revenueL2M: computeRevenue(rec.agrmnt_model, monthlyRental, commissionL2M)
+      revenueL2M: computeRevenue(rec.agrmnt_model, monthlyRental, commissionL2M),
+      recentlyExpired: recentlyExpired
     };
   }).sort((a, b) => a.brand.localeCompare(b.brand) || a.city.localeCompare(b.city));
 
@@ -676,7 +684,7 @@ updateCdSortIndicators();
 
 // --- Revenue tab (Brand, City, Category, Sub category, KAM, Agreement Type, Monthly Rental, Commission%) ---
 function setupRevenue() {
-  const activeContracts = ALL_CONTRACTS.filter(r => r.bucket !== 'Expired');
+  const activeContracts = ALL_CONTRACTS.filter(r => r.bucket !== 'Expired' || r.recentlyExpired);
   const categorySet = [...new Set(activeContracts.map(r => r.category || 'Uncategorized'))].sort();
   const categorySelect = document.getElementById('rv-category');
   categorySelect.innerHTML = '<option value="">All categories</option>';
@@ -696,7 +704,7 @@ function renderRevenue() {
   const categoryFilter = document.getElementById('rv-category').value;
   const cityFilter = document.getElementById('rv-city').value;
   const filtered = ALL_CONTRACTS.filter(r => {
-    if (r.bucket === 'Expired') return false;
+    if (r.bucket === 'Expired' && !r.recentlyExpired) return false;
     const matchesQ = !q || r.brand.toLowerCase().includes(q) || r.city.toLowerCase().includes(q) || r.kam.toLowerCase().includes(q);
     const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
     const matchesCity = !cityFilter || r.city === cityFilter;

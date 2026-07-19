@@ -201,7 +201,7 @@
       <div class="section-title" style="margin:0;">Revenue x Brand</div>
       <div class="pager-label" id="rv-count">— rows</div>
     </div>
-    <p class="sub" style="margin-top:0;">Monthly Rental = agreement value &divide; contract duration. CM = current month (from Forecast Dump, so far this month). LM/L2M = last month / 2 months ago (from Previous Month). Commission = Commission% &times; MRP (if applicable on MRP) or &times; Net Sales (if Customer Selling Price). Revenue by Agreement Type: FIXED = rental only, MARGIN = commission only, AND = rental + commission, OR = whichever of rental/commission is higher.</p>
+    <p class="sub" style="margin-top:0;">Monthly Rental = agreement value &divide; contract duration. CM = current month (from Forecast Dump, so far this month). LM/L2M = last month / 2 months ago (from Previous Month). Commission = Commission% &times; MRP (if applicable on MRP) or &times; Net Sales (if Customer Selling Price). Revenue by Agreement Type: FIXED = rental only, MARGIN = commission only, AND = rental + commission, OR = whichever of rental/commission is higher. Expired contracts are dropped after ~2 months, but stay listed until then &mdash; showing 0 revenue for the current month while still showing their LM/L2M revenue.</p>
 
     <div class="toolbar">
       <input id="rv-search" type="text" placeholder="Search brand, city or KAM">
