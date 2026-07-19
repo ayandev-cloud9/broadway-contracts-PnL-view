@@ -78,6 +78,11 @@
   #details-table td.money, #revenue-table td.money{color:var(--success);font-weight:700;}
   #details-table td.muted, #revenue-table td.muted{color:var(--text-muted);}
   #details-table td.brand-cell, #revenue-table td.brand-cell{font-weight:700;color:var(--accent);}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{background:var(--accent-2);color:var(--accent);}
+  th.sortable::after{content:'';display:inline-block;width:10px;}
+  th.sortable.sort-asc::after{content:'\25B2';font-size:9px;margin-left:4px;}
+  th.sortable.sort-desc::after{content:'\25BC';font-size:9px;margin-left:4px;}
   button{
     height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--accent);
     background:var(--surface);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;
@@ -207,26 +212,26 @@
       <table id="revenue-table">
         <thead>
           <tr>
-            <th>Brand</th>
-            <th>City</th>
-            <th>Category</th>
-            <th>Sub category</th>
-            <th>KAM</th>
-            <th>Agreement Type</th>
-            <th style="text-align:right;">Monthly Rental</th>
-            <th style="text-align:right;">Commission%</th>
-            <th style="text-align:right;">MRP Exp. (CM)</th>
-            <th style="text-align:right;">MRP (LM)</th>
-            <th style="text-align:right;">MRP (L2M)</th>
-            <th style="text-align:right;">Net Sales Exp. (CM)</th>
-            <th style="text-align:right;">Net Sales (LM)</th>
-            <th style="text-align:right;">Net Sales (L2M)</th>
-            <th style="text-align:right;">Commission Exp. (CM)</th>
-            <th style="text-align:right;">Commission Earned (LM)</th>
-            <th style="text-align:right;">Commission Earned (L2M)</th>
-            <th style="text-align:right;">Revenue Exp. (CM)</th>
-            <th style="text-align:right;">Revenue Earned (LM)</th>
-            <th style="text-align:right;">Revenue Earned (L2M)</th>
+            <th class="sortable" data-key="brand" data-type="str">Brand</th>
+            <th class="sortable" data-key="city" data-type="str">City</th>
+            <th class="sortable" data-key="category" data-type="str">Category</th>
+            <th class="sortable" data-key="subCategory" data-type="str">Sub category</th>
+            <th class="sortable" data-key="kam" data-type="str">KAM</th>
+            <th class="sortable" data-key="agreementType" data-type="str">Agreement Type</th>
+            <th class="sortable" data-key="monthlyRental" data-type="num" style="text-align:right;">Monthly Rental</th>
+            <th class="sortable" data-key="actualCommission" data-type="num" style="text-align:right;">Commission%</th>
+            <th class="sortable" data-key="mrpCM" data-type="num" style="text-align:right;">MRP Exp. (CM)</th>
+            <th class="sortable" data-key="mrpLM" data-type="num" style="text-align:right;">MRP (LM)</th>
+            <th class="sortable" data-key="mrpL2M" data-type="num" style="text-align:right;">MRP (L2M)</th>
+            <th class="sortable" data-key="netSalesCM" data-type="num" style="text-align:right;">Net Sales Exp. (CM)</th>
+            <th class="sortable" data-key="netSalesLM" data-type="num" style="text-align:right;">Net Sales (LM)</th>
+            <th class="sortable" data-key="netSalesL2M" data-type="num" style="text-align:right;">Net Sales (L2M)</th>
+            <th class="sortable" data-key="commissionCM" data-type="num" style="text-align:right;">Commission Exp. (CM)</th>
+            <th class="sortable" data-key="commissionLM" data-type="num" style="text-align:right;">Commission Earned (LM)</th>
+            <th class="sortable" data-key="commissionL2M" data-type="num" style="text-align:right;">Commission Earned (L2M)</th>
+            <th class="sortable" data-key="revenueCM" data-type="num" style="text-align:right;">Revenue Exp. (CM)</th>
+            <th class="sortable" data-key="revenueLM" data-type="num" style="text-align:right;">Revenue Earned (LM)</th>
+            <th class="sortable" data-key="revenueL2M" data-type="num" style="text-align:right;">Revenue Earned (L2M)</th>
           </tr>
         </thead>
         <tbody id="revenue-table-body"></tbody>

@@ -95,6 +95,8 @@ let cdPage = 0;
 const cdPerPage = 20;
 let rvPage = 0;
 const rvPerPage = 20;
+let rvSortKey = 'monthlyRental';
+let rvSortDir = 'desc';
 // junk/placeholder city labels, excluded from city + category rollups (still visible under "All cities")
 const HIDDEN_CITIES = ['BW-VAS', 'Unspecified'];
 
@@ -602,7 +604,7 @@ function renderRevenue() {
     const matchesCategory = !categoryFilter || (r.category || 'Uncategorized') === categoryFilter;
     const matchesCity = !cityFilter || r.city === cityFilter;
     return matchesQ && matchesCategory && matchesCity;
-  }).sort((a, b) => (b.monthlyRental || 0) - (a.monthlyRental || 0));
+  }).sort((a, b) => compareRows(a, b, rvSortKey, rvSortDir));
 
   document.getElementById('rv-count').textContent = filtered.length + ' row' + (filtered.length === 1 ? '' : 's');
   const maxPage = Math.max(0, Math.ceil(filtered.length / rvPerPage) - 1);
@@ -629,5 +631,40 @@ document.getElementById('rv-category').addEventListener('change', () => { rvPage
 document.getElementById('rv-city').addEventListener('change', () => { rvPage = 0; renderRevenue(); });
 document.getElementById('rv-prev').addEventListener('click', () => { if (rvPage > 0) { rvPage--; renderRevenue(); } });
 document.getElementById('rv-next').addEventListener('click', () => { rvPage++; renderRevenue(); });
+
+// nulls always sort last, regardless of direction; numbers compare numerically, everything else as text
+function compareRows(a, b, key, dir) {
+  const av = a[key], bv = b[key];
+  const aEmpty = av === null || av === undefined || av === '';
+  const bEmpty = bv === null || bv === undefined || bv === '';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  const cmp = (typeof av === 'number' && typeof bv === 'number') ? av - bv : String(av).localeCompare(String(bv));
+  return dir === 'asc' ? cmp : -cmp;
+}
+
+function updateRvSortIndicators() {
+  document.querySelectorAll('#revenue-table th.sortable').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.key === rvSortKey) th.classList.add(rvSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+document.querySelectorAll('#revenue-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (rvSortKey === key) {
+      rvSortDir = rvSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      rvSortKey = key;
+      rvSortDir = th.dataset.type === 'str' ? 'asc' : 'desc';
+    }
+    updateRvSortIndicators();
+    rvPage = 0;
+    renderRevenue();
+  });
+});
+updateRvSortIndicators();
 
 loadData();
