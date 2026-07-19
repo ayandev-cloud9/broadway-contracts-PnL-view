@@ -151,7 +151,7 @@ async function loadData() {
 function renderLiveByCity() {
   const rows = Object.keys(CITY_STATUS)
     .map(city => [city, CITY_STATUS[city].LIVE || 0])
-    .filter(r => r[1] > 0)
+    .filter(r => r[1] > 0 && r[0] !== 'Unspecified')
     .sort((a, b) => b[1] - a[1]);
   const el = document.getElementById('live-by-city');
   el.className = 'cards';
