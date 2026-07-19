@@ -96,6 +96,8 @@ async function loadData() {
   records.forEach(rec => {
     const brand = rec.brand_name, city = rec.store_name || 'Unspecified';
     if (!brand) return;
+    if (/^(grand\s*)?total$/i.test(brand.trim())) return; // skip subtotal/summary rows
+    if (!rec.contract_id) return; // real contracts always have a contract_id; blank means it's not an actual row
     const key = brand + '|' + city;
     const startDt = parseDate(rec.start_date);
     const existing = latestByKey[key];
