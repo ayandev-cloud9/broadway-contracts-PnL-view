@@ -906,10 +906,22 @@ function renderSummary() {
   const metricSelect = document.getElementById('summary-metric');
   const metric = metricSelect ? metricSelect.value : 'cm';
 
+  // city dropdown — populate once, keep whatever the user has picked on later reloads
+  const citySelect = document.getElementById('summary-city');
+  if (citySelect && citySelect.options.length <= 1) {
+    cities.forEach(city => {
+      const o = document.createElement('option');
+      o.value = city; o.textContent = city;
+      citySelect.appendChild(o);
+    });
+  }
+  const cityFilter = citySelect ? citySelect.value : '';
+  const pivotCities = cityFilter ? cities.filter(c => c === cityFilter) : cities;
+
   const cityHeaderRow = '<tr class="city-row">' +
     '<th class="cat-cell">Category</th>' +
-    cities.map((city, i) => {
-      const c = SUMMARY_CITY_COLORS[i % SUMMARY_CITY_COLORS.length];
+    pivotCities.map(city => {
+      const c = SUMMARY_CITY_COLORS[cities.indexOf(city) % SUMMARY_CITY_COLORS.length];
       return '<th style="background:' + c.bg + ';color:' + c.color + ';">' + city + '</th>';
     }).join('') +
     '</tr>';
@@ -917,13 +929,13 @@ function renderSummary() {
   const bodyRows = categories.map(cat => (
     '<tr>' +
       '<td class="cat-cell">' + cat + '</td>' +
-      cities.map(city => '<td>' + rupee(agg[cat][city][metric]) + '</td>').join('') +
+      pivotCities.map(city => '<td>' + rupee(agg[cat][city][metric]) + '</td>').join('') +
     '</tr>'
   )).join('');
 
   const totalRow = '<tr>' +
     '<td class="cat-cell">Total</td>' +
-    cities.map(city => '<td>' + rupee(cityTotals[city][metric]) + '</td>').join('') +
+    pivotCities.map(city => '<td>' + rupee(cityTotals[city][metric]) + '</td>').join('') +
     '</tr>';
 
   wrap.innerHTML =
@@ -934,5 +946,6 @@ function renderSummary() {
 }
 
 document.getElementById('summary-metric').addEventListener('change', renderSummary);
+document.getElementById('summary-city').addEventListener('change', renderSummary);
 
 loadData();
